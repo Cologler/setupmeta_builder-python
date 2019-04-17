@@ -19,7 +19,7 @@ def setup_it(**attrs):
     '''
     just enjoy the auto setup!
     '''
-    setup_attrs = get_setup_attrs(**attrs)
+    setup_attrs = get_setup_attrs()
     setup_attrs.update(attrs)
     from setuptools import setup
     setup(**setup_attrs)
