@@ -5,6 +5,8 @@
 #
 # ----------
 
+import re
+
 from setupmeta_builder import get_setup_attrs
 
 def test_attrs_for_setupmeta_builder():
@@ -12,6 +14,7 @@ def test_attrs_for_setupmeta_builder():
     with open('README.md', encoding='utf-8') as fp:
         assert setup_attrs['long_description'] == fp.read()
     setup_attrs.pop('long_description')
+    assert re.match(r'^\d+\.\d+\.\d+$', setup_attrs.pop('version'))
     assert setup_attrs == {
         'packages': ['setupmeta_builder'],
         'long_description_content_type': 'text/markdown',

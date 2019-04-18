@@ -7,6 +7,7 @@
 
 import os
 import json
+import subprocess
 from pathlib import Path
 from collections import ChainMap
 
@@ -122,8 +123,28 @@ class SetupMetaBuilder:
         if packages and len(packages) == 1:
             ctx.setup_attrs['name'] = packages[0]
 
+    def _parse_strict_version(self, tag):
+        from distutils.version import StrictVersion
+        ver = StrictVersion()
+        try:
+            ver.parse(tag)
+        except ValueError:
+            return None
+        return ver.version
+
     def update_version(self, ctx: SetupAttrContext):
-        pass
+        git_describe = subprocess.run(['git', 'describe'], stdout=subprocess.PIPE, encoding='utf-8')
+        if git_describe.returncode != 0:
+            return
+        describe_info: str = git_describe.stdout.strip()
+        tag = describe_info.split('-')[0]
+        ver = self._parse_strict_version(tag)
+        if ver is None:
+            if tag[:1].lower() == 'v':
+                ver = self._parse_strict_version(tag[1:])
+        if ver is not None:
+            v1, v2, v3 = ver
+            ctx.setup_attrs['version'] = f'{v1}.{v2}.{v3}'
 
     def update_author(self, ctx: SetupAttrContext):
         author = ctx.get_pkgit_conf().get('author')
@@ -136,7 +157,6 @@ class SetupMetaBuilder:
             ctx.setup_attrs['author_email'] = author_email
 
     def update_url(self, ctx: SetupAttrContext):
-        import subprocess
         def get_url_from_remote(name):
             git_remote_get_url = subprocess.run(
                 ['git', 'remote', 'get-url', name],
