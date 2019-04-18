@@ -29,6 +29,6 @@ def test_attrs_for_setupmeta_builder():
         ],
         'zip_safe': False,
         'include_package_data': True,
-        'install_requires': ['pipfile', 'fsoopify'],
+        'install_requires': ['pipfile', 'fsoopify', 'pyyaml'],
         'tests_require': ['pytest']
     }
