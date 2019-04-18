@@ -8,6 +8,12 @@
 from abc import abstractmethod, ABC
 
 PY_CLASSIFIERS_MAP = {
+    '2': 'Programming Language :: Python :: 2',
+    '2.3': 'Programming Language :: Python :: 2.3',
+    '2.4': 'Programming Language :: Python :: 2.4',
+    '2.5': 'Programming Language :: Python :: 2.5',
+    '2.6': 'Programming Language :: Python :: 2.6',
+    '2.7': 'Programming Language :: Python :: 2.7',
     '3.0': 'Programming Language :: Python :: 3.0',
     '3.1': 'Programming Language :: Python :: 3.1',
     '3.2': 'Programming Language :: Python :: 3.2',
@@ -36,6 +42,7 @@ class TravisCIClassifierUpdater(IClassifierUpdater):
         travis_yaml = ctx.get_fileinfo('.travis.yml')
         if travis_yaml.is_file():
             travis_conf = travis_yaml.load(format='yaml')
-            for py in travis_conf.get('python', []):
+            pylist = travis_conf.get('python', [])
+            for py in pylist:
                 if py in PY_CLASSIFIERS_MAP:
                     classifiers.append(PY_CLASSIFIERS_MAP[py])
