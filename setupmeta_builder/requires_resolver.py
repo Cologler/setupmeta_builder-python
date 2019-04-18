@@ -43,7 +43,9 @@ class PipfileRequiresResolver(RequiresResolver):
         return ctx.state['pipfile']
 
     def _pipenv_package_to_require(self, k, v):
-        return k
+        if v == '*':
+            return k
+        raise NotImplementedError((k, v))
 
     def _resolve_requires(self, ctx, attr_name, pf_key):
         pf = self._get_pipfile(ctx)
