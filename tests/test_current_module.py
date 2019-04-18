@@ -20,9 +20,12 @@ def test_attrs_for_setupmeta_builder():
         'author_email': 'skyoflw@gmail.com',
         'url': 'https://github.com/Cologler/setupmeta_builder-python',
         'license': 'MIT License',
-        'classifiers': ['License :: OSI Approved :: MIT License'],
+        'classifiers': [
+            'License :: OSI Approved :: MIT License',
+            'Programming Language :: Python :: 3.7',
+        ],
         'zip_safe': False,
         'include_package_data': True,
-        'install_requires': ['pipfile'],
+        'install_requires': ['pipfile', 'fsoopify'],
         'tests_require': ['pytest']
     }

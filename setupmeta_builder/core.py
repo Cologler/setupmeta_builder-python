@@ -10,6 +10,9 @@ import json
 from pathlib import Path
 from collections import ChainMap
 
+import fsoopify
+
+from .licenses import LICENSES
 from .requires_resolver import DefaultRequiresResolver
 
 class SetupAttrContext:
@@ -34,11 +37,15 @@ class SetupAttrContext:
         '''
         return self._state
 
+    def get_fileinfo(self, relpath) -> fsoopify.FileInfo:
+        '''get `FileInfo` or `None`'''
+        return fsoopify.FileInfo(str(self._root_path / relpath))
+
     def get_text_content(self, relpath) -> str:
-        '''get file or None'''
-        path = self._root_path / relpath
-        if path.is_file():
-            return path.read_text('utf-8')
+        '''get file content or `None`'''
+        fileinfo = self.get_fileinfo(relpath)
+        if fileinfo.is_file():
+            return fileinfo.read_text()
 
     def get_pkgit_conf(self) -> dict:
         if self._pkgit_conf is None:
@@ -81,6 +88,10 @@ class SetupMetaBuilder:
 
     def __init__(self):
         self.requires_resolver = DefaultRequiresResolver()
+        from .classifiers import IClassifierUpdater
+        self.classifier_updaters = [
+            cls() for cls in IClassifierUpdater.All
+        ]
 
     def fill_ctx(self, ctx: SetupAttrContext):
         for attr in self.will_update_attrs:
@@ -158,22 +169,18 @@ class SetupMetaBuilder:
         if not lice:
             return
 
-        from .licenses import LICENSES
-
         lines = lice.splitlines()
         if lines[0] in LICENSES:
             ctx.setup_attrs['license'] = lines[0]
 
     def update_classifiers(self, ctx: SetupAttrContext):
         # see: https://pypi.org/classifiers/
-        ctx.setup_attrs['classifiers'] = classifiers = []
+        classifiers = []
 
-        from .licenses import LICENSES_CLASSIFIERS_MAP
-        lice = ctx.setup_attrs.get('license')
-        if lice and lice in LICENSES_CLASSIFIERS_MAP:
-            classifiers.append(
-                LICENSES_CLASSIFIERS_MAP[lice]
-            )
+        for updater in self.classifier_updaters:
+            updater.update_classifiers(ctx, classifiers)
+
+        ctx.setup_attrs['classifiers'] = list(sorted(set(classifiers)))
 
     def update_scripts(self, ctx: SetupAttrContext):
         pass
