@@ -14,7 +14,8 @@ from setupmeta_builder.requires_resolver import (
     DefaultRequiresResolver,
 )
 
-install_requires = ['fsoopify', 'pipfile', 'pyyaml']
+install_requires = fsoopify.FileInfo('requirements.txt').read_text().strip().splitlines()
+install_requires.sort()
 test_require = ['pytest']
 
 def _get_non_module_ctx():

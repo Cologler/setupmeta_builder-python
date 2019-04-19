@@ -1,3 +1,4 @@
 pipfile
 fsoopify
 pyyaml
+packaging
