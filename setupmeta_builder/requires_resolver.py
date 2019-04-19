@@ -8,6 +8,11 @@
 from abc import abstractmethod, ABC
 
 class RequiresResolver(ABC):
+    @property
+    @abstractmethod
+    def name(self):
+        raise NotImplementedError
+
     @abstractmethod
     def resolve_install_requires(self, ctx) -> list:
         raise NotImplementedError
@@ -21,6 +26,10 @@ class RequiresResolver(ABC):
 
 
 class RequirementsTxtRequiresResolver(RequiresResolver):
+    @property
+    def name(self):
+        return 'requirements.txt'
+
     def resolve_install_requires(self, ctx) -> list:
         requirements = ctx.get_text_content('requirements.txt')
         if requirements is None:
@@ -33,6 +42,10 @@ class RequirementsTxtRequiresResolver(RequiresResolver):
 
 
 class PipfileRequiresResolver(RequiresResolver):
+    @property
+    def name(self):
+        return 'Pipfile'
+
     def _get_pipfile(self, ctx):
         if 'pipfile' not in ctx.state:
             pipfile_path = ctx.root_path / 'Pipfile'
@@ -69,6 +82,11 @@ class ChainRequiresResolver(RequiresResolver):
     def __init__(self, *resolvers):
         self.resolvers = list(resolvers)
 
+    @property
+    def name(self):
+        childs_name = ', '.join([c.name for c in self.resolvers])
+        return f'chain({childs_name})'
+
     def resolve_install_requires(self, ctx) -> list:
         for r in self.resolvers:
             ret = r.resolve_install_requires(ctx)
@@ -86,22 +104,31 @@ class StrictRequiresResolver(RequiresResolver):
     def __init__(self, *resolvers):
         self.resolvers = list(resolvers)
 
+    @property
+    def name(self):
+        childs_name = ', '.join([c.name for c in self.resolvers])
+        return f'strict({childs_name})'
+
     def _get_result(self, rets: list):
-        rets = [r for r in rets if r is not None]
+        rets = [r for r in rets if r[1] is not None]
         if not rets:
             return None
-        ret = rets[0]
-        for o in rets[1:]:
-            if o != ret:
-                raise RuntimeError('different requires from multi source')
+        rslr, ret = rets[0]
+        for orslr, oret in rets[1:]:
+            if oret != ret:
+                msg = '\n'.join([
+                    f'{rslr.name} report: {ret!r}',
+                    f'{orslr.name} report: {oret!r}',
+                ])
+                raise RuntimeError('different result from multi source: \n' + msg)
         return ret
 
     def resolve_install_requires(self, ctx) -> list:
-        rets = [r.resolve_install_requires(ctx) for r in self.resolvers]
+        rets = [(r, r.resolve_install_requires(ctx)) for r in self.resolvers]
         return self._get_result(rets)
 
     def resolve_tests_require(self, ctx) -> list:
-        rets = [r.resolve_tests_require(ctx) for r in self.resolvers]
+        rets = [(r, r.resolve_tests_require(ctx)) for r in self.resolvers]
         return self._get_result(rets)
 
 
@@ -114,6 +141,10 @@ class DefaultRequiresResolver(RequiresResolver):
         self._test_resolver = StrictRequiresResolver(
             PipfileRequiresResolver()
         )
+
+    @property
+    def name(self):
+        return 'default'
 
     def resolve_install_requires(self, ctx) -> list:
         return self._install_resolver.resolve_install_requires(ctx)
