@@ -1,5 +1,9 @@
 # Setupmeta Builder
 
+![GitHub](https://img.shields.io/github/license/Cologler/setupmeta_builder-python.svg)
+[![Build Status](https://travis-ci.com/Cologler/setupmeta_builder-python.svg?branch=master)](https://travis-ci.com/Cologler/setupmeta_builder-python)
+[![PyPI](https://img.shields.io/pypi/v/setupmeta_builder.svg)](https://pypi.org/project/setupmeta_builder/)
+
 ## Usage
 
 Replace your `setup.py` file to:
