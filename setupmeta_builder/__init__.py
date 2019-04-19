@@ -7,11 +7,11 @@
 
 from .core import SetupAttrContext, SetupMetaBuilder
 
-def get_setup_attrs() -> dict:
+def get_setup_attrs(root_path=None) -> dict:
     '''
     get the auto generated attrs dict.
     '''
-    ctx = SetupAttrContext()
+    ctx = SetupAttrContext(root_path)
     SetupMetaBuilder().fill_ctx(ctx)
     return ctx.setup_attrs
 
