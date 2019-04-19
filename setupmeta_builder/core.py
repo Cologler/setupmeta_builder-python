@@ -119,9 +119,20 @@ class SetupMetaBuilder:
         ctx.setup_attrs.setdefault('long_description', '')
 
     def update_name(self, ctx: SetupAttrContext):
-        packages = ctx.setup_attrs.get('packages')
-        if packages and len(packages) == 1:
-            ctx.setup_attrs['name'] = packages[0]
+        def parse_name():
+            packages = ctx.setup_attrs.get('packages')
+            if not packages:
+                raise RuntimeError(f'unable to parse name: no packages found')
+            ns = set()
+            for pkg in packages:
+                ns.add(pkg.partition('.')[0])
+            if len(ns) > 1:
+                raise RuntimeError(f'unable to pick name from: {ns}')
+            return list(ns)[0]
+
+        name = parse_name()
+        if name:
+            ctx.setup_attrs['name'] = name
 
     def _parse_strict_version(self, tag):
         from packaging.version import Version, parse
