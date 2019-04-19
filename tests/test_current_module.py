@@ -7,7 +7,12 @@
 
 import re
 
+import fsoopify
+
 from setupmeta_builder import get_setup_attrs
+
+install_requires = fsoopify.FileInfo('requirements.txt').read_text().strip().splitlines()
+install_requires.sort()
 
 def test_attrs_for_setupmeta_builder():
     setup_attrs = get_setup_attrs()
@@ -29,6 +34,6 @@ def test_attrs_for_setupmeta_builder():
         ],
         'zip_safe': False,
         'include_package_data': True,
-        'install_requires': ['pipfile', 'fsoopify', 'pyyaml'],
+        'install_requires': install_requires,
         'tests_require': ['pytest']
     }

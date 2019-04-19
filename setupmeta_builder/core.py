@@ -124,13 +124,10 @@ class SetupMetaBuilder:
             ctx.setup_attrs['name'] = packages[0]
 
     def _parse_strict_version(self, tag):
-        from distutils.version import StrictVersion
-        ver = StrictVersion()
-        try:
-            ver.parse(tag)
-        except ValueError:
-            return None
-        return ver.version
+        from packaging.version import Version, parse
+        ver = parse(tag)
+        if isinstance(ver, Version):
+            return str(ver)
 
     def update_version(self, ctx: SetupAttrContext):
         git_describe = subprocess.run(['git', 'describe'], stdout=subprocess.PIPE, encoding='utf-8')
@@ -139,12 +136,8 @@ class SetupMetaBuilder:
         describe_info: str = git_describe.stdout.strip()
         tag = describe_info.split('-')[0]
         ver = self._parse_strict_version(tag)
-        if ver is None:
-            if tag[:1].lower() == 'v':
-                ver = self._parse_strict_version(tag[1:])
-        if ver is not None:
-            v1, v2, v3 = ver
-            ctx.setup_attrs['version'] = f'{v1}.{v2}.{v3}'
+        if ver:
+            ctx.setup_attrs['version'] = ver
 
     def update_author(self, ctx: SetupAttrContext):
         author = ctx.get_pkgit_conf().get('author')
@@ -218,7 +211,7 @@ class SetupMetaBuilder:
         pass
 
     def update_install_requires(self, ctx: SetupAttrContext):
-        self.requires_resolver.resolve_install_requires(ctx)
+        ctx.setup_attrs['install_requires'] = self.requires_resolver.resolve_install_requires(ctx)
 
     def update_tests_require(self, ctx: SetupAttrContext):
-        self.requires_resolver.resolve_tests_require(ctx)
+        ctx.setup_attrs['tests_require'] = self.requires_resolver.resolve_tests_require(ctx)
