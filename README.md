@@ -30,5 +30,8 @@ Done!
 |`classifiers`|license and file `.travis.yml`|
 |`install_requires`|files: `requirements.txt` or `pipfile`|
 |`tests_require`|file: `pipfile`|
+|`entry_points.console_scripts`|parse from file `YOUR_PKG\entry_points_console_scripts.py`|
 
 Current project is the first example.
+
+**You can always print attrs using `python setup.py print-attrs`**
