@@ -5,6 +5,7 @@ python:
   - '3.7'
 script:
   - python -m pytest
+  - python setup.py print_attrs
 deploy:
   provider: pypi
   user: $PYPI_USER
