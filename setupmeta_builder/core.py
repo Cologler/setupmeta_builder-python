@@ -70,8 +70,8 @@ class SetupAttrContext:
         gitdir = str(self.root_path / '.git')
         argv = ['git', f'--git-dir={gitdir}'] + argv
         return subprocess.run(argv, encoding='utf-8',
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
         )
 
 

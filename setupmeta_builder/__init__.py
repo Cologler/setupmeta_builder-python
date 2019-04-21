@@ -24,12 +24,29 @@ def setup_it(**attrs):
     setup_attrs = get_setup_attrs()
     setup_attrs.update(attrs)
 
-    if len(sys.argv) == 2 and sys.argv[1].lower() == 'print-attrs':
+    def print_attrs():
+        setup_attrs_copy = setup_attrs.copy()
         from prettyprinter import pprint
-        if 'long_description' in setup_attrs and len(setup_attrs['long_description']) > 1000:
-            setup_attrs['long_description'] = '...<Hided for too long>...'
-        pprint(setup_attrs)
-        return
+        long_description = setup_attrs.get('long_description')
+        if long_description and len(long_description) > 205:
+            setup_attrs_copy['long_description'] = long_description[:200] + '...'
+        pprint(setup_attrs_copy)
 
     from setuptools import setup
+    from distutils.cmd import Command
+
+    class PrintAttrs(Command):
+        def _empty(self):
+            pass
+
+        user_options = []
+        initialize_options = _empty
+        finalize_options = _empty
+
+        def run(self):
+            print_attrs()
+
+    setup_attrs.setdefault('cmdclass', {}).update({
+        'print_attrs': PrintAttrs
+    })
     setup(**setup_attrs)
