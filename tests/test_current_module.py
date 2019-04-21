@@ -35,5 +35,6 @@ def test_attrs_for_setupmeta_builder():
         'zip_safe': False,
         'include_package_data': True,
         'install_requires': install_requires,
-        'tests_require': ['pytest']
+        'tests_require': ['pytest'],
+        'entry_points': {}
     }

@@ -2,3 +2,4 @@ pipfile
 fsoopify
 pyyaml
 packaging
+prettyprinter
