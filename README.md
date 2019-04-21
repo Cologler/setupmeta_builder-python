@@ -34,4 +34,4 @@ Done!
 
 Current project is the first example.
 
-**You can always print attrs using `python setup.py print-attrs`**
+**You can always print attrs using `python setup.py print_attrs`**
