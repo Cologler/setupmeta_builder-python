@@ -7,6 +7,9 @@
 
 from abc import abstractmethod, ABC
 
+import pkg_resources
+
+
 class RequiresResolver(ABC):
     @property
     @abstractmethod
@@ -30,12 +33,18 @@ class RequirementsTxtRequiresResolver(RequiresResolver):
     def name(self):
         return 'requirements.txt'
 
+    @staticmethod
+    def _package_to_require(pkg_info: pkg_resources.Requirement):
+        return pkg_info.name
+
     def resolve_install_requires(self, ctx) -> list:
         requirements = ctx.get_text_content('requirements.txt')
         if requirements is None:
             return None
 
-        return self._sorted_list([l for l in requirements.splitlines() if l])
+        return self._sorted_list(
+            [self._package_to_require(r) for r in pkg_resources.parse_requirements(requirements)]
+        )
 
     def resolve_tests_require(self, ctx) -> list:
         return None
@@ -57,7 +66,8 @@ class PipfileRequiresResolver(RequiresResolver):
             ctx.state['pipfile'] = pf
         return ctx.state['pipfile']
 
-    def _pipenv_package_to_require(self, k, v):
+    @staticmethod
+    def _package_to_require(k, v):
         if v == '*':
             return k
         raise NotImplementedError((k, v))
@@ -68,7 +78,7 @@ class PipfileRequiresResolver(RequiresResolver):
             return None
         requires = []
         for k, v in pf.data[pf_key].items():
-            requires.append(self._pipenv_package_to_require(k, v))
+            requires.append(self._package_to_require(k, v))
         return self._sorted_list(requires)
 
     def resolve_install_requires(self, ctx) -> list:

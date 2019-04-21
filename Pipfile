@@ -11,6 +11,7 @@ pipfile = "*"
 fsoopify = "*"
 pyyaml = "*"
 packaging = "*"
+prettyprinter = "*"
 
 [requires]
 python_version = "3.7"

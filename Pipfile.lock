@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "4a758c804b6d0e1510cef56d5763402417451cabf15a71a238074f45edc3a4c9"
+            "sha256": "bb41bfbfca7bf579dcba9bbd96eeda529e9bf622392897982105729c16b48e0e"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,6 +16,21 @@
         ]
     },
     "default": {
+        "colorama": {
+            "hashes": [
+                "sha256:05eed71e2e327246ad6b38c540c4a3117230b19679b875190486ddd2d721422d",
+                "sha256:f8ac84de7840f5b9c4e3347b3c1eaa50f7e49c2b07596221daec5edaabbd7c48"
+            ],
+            "markers": "platform_system == 'Windows'",
+            "version": "==0.4.1"
+        },
+        "colorful": {
+            "hashes": [
+                "sha256:74bbaeb90fb5b3d31fccdc6e562bdce721f19dc6d566f72a31e43f5503ac2841",
+                "sha256:86db34ba9b41106d7c69a394049e9d47be4cf15f863d04b8a0b21509ea9df6bc"
+            ],
+            "version": "==0.5.0"
+        },
         "fsoopify": {
             "hashes": [
                 "sha256:08a1e70b9bef39ecc35c3363c83376c5427def8b62b4a732e75cccd34fdc3b4a",
@@ -38,6 +53,21 @@
             ],
             "index": "pypi",
             "version": "==0.0.2"
+        },
+        "prettyprinter": {
+            "hashes": [
+                "sha256:77120936976b3487c5d733eb6347cad18831e5ad10f8a24f269bfd0b16498f16",
+                "sha256:c1e72c7baae8f82f8e2a4b34ef43a261a191b2c680ed0042030a54ff57247cce"
+            ],
+            "index": "pypi",
+            "version": "==0.17.0"
+        },
+        "pygments": {
+            "hashes": [
+                "sha256:5ffada19f6203563680669ee7f53b64dabbeb100eb51b61996085e99c03b284a",
+                "sha256:e8218dd399a61674745138520d0d4cf2621d7e032439341bc3f647bff125818d"
+            ],
+            "version": "==2.3.1"
         },
         "pyparsing": {
             "hashes": [
@@ -98,7 +128,7 @@
                 "sha256:05eed71e2e327246ad6b38c540c4a3117230b19679b875190486ddd2d721422d",
                 "sha256:f8ac84de7840f5b9c4e3347b3c1eaa50f7e49c2b07596221daec5edaabbd7c48"
             ],
-            "markers": "sys_platform == 'win32'",
+            "markers": "platform_system == 'Windows'",
             "version": "==0.4.1"
         },
         "more-itertools": {

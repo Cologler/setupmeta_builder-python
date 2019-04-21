@@ -66,6 +66,14 @@ class SetupAttrContext:
 
         return self._pkgit_conf
 
+    def _run_git(self, argv: list):
+        gitdir = str(self.root_path / '.git')
+        argv = ['git', f'--git-dir={gitdir}'] + argv
+        return subprocess.run(argv, encoding='utf-8',
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+
 
 class SetupMetaBuilder:
     will_update_attrs = [
@@ -119,9 +127,20 @@ class SetupMetaBuilder:
         ctx.setup_attrs.setdefault('long_description', '')
 
     def update_name(self, ctx: SetupAttrContext):
-        packages = ctx.setup_attrs.get('packages')
-        if packages and len(packages) == 1:
-            ctx.setup_attrs['name'] = packages[0]
+        def parse_name():
+            packages = ctx.setup_attrs.get('packages')
+            if not packages:
+                raise RuntimeError(f'unable to parse name: no packages found')
+            ns = set()
+            for pkg in packages:
+                ns.add(pkg.partition('.')[0])
+            if len(ns) > 1:
+                raise RuntimeError(f'unable to pick name from: {ns}')
+            return list(ns)[0]
+
+        name = parse_name()
+        if name:
+            ctx.setup_attrs['name'] = name
 
     def _parse_strict_version(self, tag):
         from packaging.version import Version, parse
@@ -130,7 +149,7 @@ class SetupMetaBuilder:
             return str(ver)
 
     def update_version(self, ctx: SetupAttrContext):
-        git_describe = subprocess.run(['git', 'describe'], stdout=subprocess.PIPE, encoding='utf-8')
+        git_describe = ctx._run_git(['describe'])
         if git_describe.returncode != 0:
             return
         describe_info: str = git_describe.stdout.strip()
@@ -151,15 +170,12 @@ class SetupMetaBuilder:
 
     def update_url(self, ctx: SetupAttrContext):
         def get_url_from_remote(name):
-            git_remote_get_url = subprocess.run(
-                ['git', 'remote', 'get-url', name],
-                stdout=subprocess.PIPE, encoding='utf-8'
-            )
+            git_remote_get_url = ctx._run_git(['remote', 'get-url', name])
             if git_remote_get_url.returncode != 0:
                 return
             return git_remote_get_url.stdout.strip()
 
-        git_remote = subprocess.run(['git', 'remote'], stdout=subprocess.PIPE, encoding='utf-8')
+        git_remote = ctx._run_git(['remote'])
         if git_remote.returncode != 0:
             return
         lines = git_remote.stdout.strip().splitlines()
@@ -199,7 +215,28 @@ class SetupMetaBuilder:
         pass
 
     def update_entry_points(self, ctx: SetupAttrContext):
-        pass
+        entry_points = {}
+        console_scripts = self._get_entry_points_console_scripts(ctx)
+        if console_scripts:
+            entry_points['console_scripts'] = console_scripts
+        ctx.setup_attrs['entry_points'] = entry_points
+
+    def _get_entry_points_console_scripts(self, ctx: SetupAttrContext):
+        name = ctx.setup_attrs.get('name')
+        console_scripts = []
+        if name:
+            csf = ctx.get_fileinfo(os.path.join(name, 'entry_points_console_scripts.py'))
+            if csf.is_file():
+                g = {}
+                l = g
+                exec(csf.read_text(), g, l)
+                for k in g.keys():
+                    if isinstance(k, str) and not k.startswith('_'):
+                        script_name = k.replace('_', '-')
+                        console_scripts.append(
+                            f'{script_name}={name}.entry_points_console_scripts:{k}'
+                        )
+        return console_scripts
 
     def update_zip_safe(self, ctx: SetupAttrContext):
         ctx.setup_attrs['zip_safe'] = False
