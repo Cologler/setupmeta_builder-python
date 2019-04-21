@@ -149,7 +149,7 @@ class SetupMetaBuilder:
             return str(ver)
 
     def update_version(self, ctx: SetupAttrContext):
-        git_describe = ctx._run_git(['describe'])
+        git_describe = ctx._run_git(['describe', '--tags'])
         if git_describe.returncode != 0:
             return
         describe_info: str = git_describe.stdout.strip()
