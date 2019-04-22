@@ -194,13 +194,8 @@ class SetupMetaBuilder:
 
 
     def update_license(self, ctx: SetupAttrContext):
-        lice = ctx.get_text_content('LICENSE')
-        if not lice:
-            return
-
-        lines = lice.splitlines()
-        if lines[0] in LICENSES:
-            ctx.setup_attrs['license'] = lines[0]
+        from .licenses import update_license
+        update_license(ctx)
 
     def update_classifiers(self, ctx: SetupAttrContext):
         # see: https://pypi.org/classifiers/
