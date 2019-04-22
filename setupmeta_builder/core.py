@@ -2,7 +2,8 @@
 #
 # Copyright (c) 2019~2999 - Cologler <skyoflw@gmail.com>
 # ----------
-#
+# all attrs from spec:
+# https://packaging.python.org/guides/distributing-packages-using-setuptools/
 # ----------
 
 import os
