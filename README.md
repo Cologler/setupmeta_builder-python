@@ -35,3 +35,11 @@ Done!
 Current project is the first example.
 
 **You can always print attrs using `python setup.py print_attrs`**
+
+## Details
+
+### entry_points.console_scripts
+
+If your package include a file named `entry_points_console_scripts.py`, setupmeta_builder will exec it and get all item from globals.
+
+So do **NOT** import anything in top of `entry_points_console_scripts.py`.
