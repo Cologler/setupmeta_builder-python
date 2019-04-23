@@ -16,6 +16,7 @@ import fsoopify
 
 from .licenses import LICENSES
 from .requires_resolver import DefaultRequiresResolver
+from .version_resolver import update_version
 
 class SetupAttrContext:
     def __init__(self, root_path=None):
@@ -150,14 +151,7 @@ class SetupMetaBuilder:
             return str(ver)
 
     def update_version(self, ctx: SetupAttrContext):
-        git_describe = ctx._run_git(['describe', '--tags'])
-        if git_describe.returncode != 0:
-            return
-        describe_info: str = git_describe.stdout.strip()
-        tag = describe_info.split('-')[0]
-        ver = self._parse_strict_version(tag)
-        if ver:
-            ctx.setup_attrs['version'] = ver
+        update_version(ctx)
 
     def update_author(self, ctx: SetupAttrContext):
         author = ctx.get_pkgit_conf().get('author')
