@@ -24,6 +24,14 @@ def setup_it(**attrs):
     setup_attrs = get_setup_attrs()
     setup_attrs.update(attrs)
 
+    def print_id():
+        name = setup_attrs.get('name', '')
+        version = setup_attrs.get('version')
+        print(f'<name={name!r}, version={version!r}>')
+
+    if len(sys.argv) > 1 and 'sdist' in sys.argv:
+        print_id()
+
     def print_attrs():
         setup_attrs_copy = setup_attrs.copy()
         from prettyprinter import pprint
