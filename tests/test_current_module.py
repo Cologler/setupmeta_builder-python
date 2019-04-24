@@ -29,6 +29,7 @@ def test_attrs_for_setupmeta_builder():
         'url': 'https://github.com/Cologler/setupmeta_builder-python',
         'license': 'MIT License',
         'classifiers': [
+            'Development Status :: 5 - Production/Stable',
             'License :: OSI Approved :: MIT License',
             'Programming Language :: Python :: 3.7',
         ],
