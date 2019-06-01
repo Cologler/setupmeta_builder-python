@@ -144,12 +144,6 @@ class SetupMetaBuilder:
         if name:
             ctx.setup_attrs['name'] = name
 
-    def _parse_strict_version(self, tag):
-        from packaging.version import Version, parse
-        ver = parse(tag)
-        if isinstance(ver, Version):
-            return str(ver)
-
     def update_version(self, ctx: SetupAttrContext):
         update_version(ctx)
 
