@@ -20,6 +20,14 @@ def test_attrs_for_setupmeta_builder():
         assert setup_attrs['long_description'] == fp.read()
     setup_attrs.pop('long_description')
     assert re.match(r'^\d+\.\d+\.\d+$', setup_attrs.pop('version'))
+
+    classifiers = setup_attrs.pop('classifiers')
+    assert isinstance(classifiers, list)
+    assert 'Development Status :: 5 - Production/Stable' in classifiers
+    assert 'License :: OSI Approved :: MIT License' in classifiers
+    assert 'Programming Language :: Python :: 3.7' in classifiers
+    assert 'Programming Language :: Python :: 3.8' in classifiers
+
     assert setup_attrs == {
         'packages': ['setupmeta_builder'],
         'long_description_content_type': 'text/markdown',
@@ -28,11 +36,6 @@ def test_attrs_for_setupmeta_builder():
         'author_email': 'skyoflw@gmail.com',
         'url': 'https://github.com/Cologler/setupmeta_builder-python',
         'license': 'MIT License',
-        'classifiers': [
-            'Development Status :: 5 - Production/Stable',
-            'License :: OSI Approved :: MIT License',
-            'Programming Language :: Python :: 3.7',
-        ],
         'zip_safe': False,
         'include_package_data': True,
         'install_requires': install_requires,
