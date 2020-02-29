@@ -9,7 +9,7 @@ import fsoopify
 import re
 
 def parse_homepage_from_git_url(git_url: str):
-    'parse homepage url from a git url'
+    'parse homepage url from a git url (or None if unable to parse)'
 
     # parse git@github.com:Cologler/setupmeta_builder-python.git
     # to https://github.com/Cologler/setupmeta_builder-python
@@ -23,7 +23,7 @@ def parse_homepage_from_git_url(git_url: str):
         user = match.group('user')
         repo = match.group('repo')
         return f'https://{host}/{user}/{repo}'
-    return ''
+    return None
 
 def get_global_funcnames(pyfile: fsoopify.FileInfo) -> list:
     'get a list of global funcnames (use for entry_points.console_scripts).'

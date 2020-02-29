@@ -177,7 +177,8 @@ class SetupMetaBuilder:
         if git_url:
             from .utils import parse_homepage_from_git_url
             url = parse_homepage_from_git_url(git_url)
-            ctx.setup_attrs['url'] = url
+            if url:
+                ctx.setup_attrs['url'] = url
 
 
     def update_license(self, ctx: SetupAttrContext):
