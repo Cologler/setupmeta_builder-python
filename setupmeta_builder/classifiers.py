@@ -9,21 +9,19 @@ from abc import abstractmethod, ABC
 
 PY_CLASSIFIERS_MAP = {
     '2': 'Programming Language :: Python :: 2',
-    '2.3': 'Programming Language :: Python :: 2.3',
-    '2.4': 'Programming Language :: Python :: 2.4',
-    '2.5': 'Programming Language :: Python :: 2.5',
-    '2.6': 'Programming Language :: Python :: 2.6',
-    '2.7': 'Programming Language :: Python :: 2.7',
-    '3.0': 'Programming Language :: Python :: 3.0',
-    '3.1': 'Programming Language :: Python :: 3.1',
-    '3.2': 'Programming Language :: Python :: 3.2',
-    '3.3': 'Programming Language :: Python :: 3.3',
-    '3.4': 'Programming Language :: Python :: 3.4',
-    '3.5': 'Programming Language :: Python :: 3.5',
-    '3.6': 'Programming Language :: Python :: 3.6',
-    '3.7': 'Programming Language :: Python :: 3.7',
-    '3.8': 'Programming Language :: Python :: 3.8',
+    '3': 'Programming Language :: Python :: 3',
 }
+
+def _init_py_classifiers_map():
+    # add 2.x
+    for sub_ver in range(3, 8):
+        PY_CLASSIFIERS_MAP[f'2.{sub_ver}'] = f'Programming Language :: Python :: 2.{sub_ver}'
+
+    # add 3.x
+    for sub_ver in range(0, 10):
+        PY_CLASSIFIERS_MAP[f'3.{sub_ver}'] = f'Programming Language :: Python :: 3.{sub_ver}'
+
+_init_py_classifiers_map()
 
 class IClassifierUpdater(ABC):
     All = []
