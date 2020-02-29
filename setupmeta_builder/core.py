@@ -175,11 +175,8 @@ class SetupMetaBuilder:
             git_url = None
 
         if git_url:
-            from .utils import parse_url_from_git_https, parse_url_from_git_ssh
-            if git_url.startswith('git@'):
-                url = parse_url_from_git_ssh(git_url)
-            else:
-                url = parse_url_from_git_https(git_url)
+            from .utils import parse_homepage_from_git_url
+            url = parse_homepage_from_git_url(git_url)
             ctx.setup_attrs['url'] = url
 
 

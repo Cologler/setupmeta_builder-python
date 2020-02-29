@@ -6,21 +6,24 @@
 # ----------
 
 import fsoopify
+import re
 
-def parse_url_from_git_ssh(git_url: str):
+def parse_homepage_from_git_url(git_url: str):
+    'parse homepage url from a git url'
+
     # parse git@github.com:Cologler/setupmeta_builder-python.git
     # to https://github.com/Cologler/setupmeta_builder-python
-    assert git_url.endswith('.git')
-    assert git_url.startswith('git@')
-    git_url = git_url[4:-4]
-    host, _, path = git_url.partition(':')
-    return f'https://{host}/{path}'
 
-def parse_url_from_git_https(git_url: str):
     # parse https://github.com/Cologler/setupmeta_builder-python.git
     # to https://github.com/Cologler/setupmeta_builder-python
-    assert git_url.endswith('.git')
-    return git_url[:-4]
+
+    match = re.match(r'^(?:(?:git\+)?(?:ssh|https)://)?(?:git@)?(?P<host>github.com)[\:/](?P<user>[^/]+)/(?P<repo>[^/\.]+)(?:\.git)?$', git_url)
+    if match:
+        host = match.group('host')
+        user = match.group('user')
+        repo = match.group('repo')
+        return f'https://{host}/{user}/{repo}'
+    return ''
 
 def get_global_funcnames(pyfile: fsoopify.FileInfo) -> list:
     'get a list of global funcnames (use for entry_points.console_scripts).'
