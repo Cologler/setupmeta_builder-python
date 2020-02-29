@@ -17,6 +17,7 @@ import fsoopify
 from .licenses import LICENSES
 from .requires_resolver import DefaultRequiresResolver
 from .version_resolver import update_version
+from .utils import get_global_funcnames
 
 class SetupAttrContext:
     def __init__(self, root_path=None):
@@ -211,14 +212,11 @@ class SetupMetaBuilder:
         if name:
             csf = ctx.get_fileinfo(os.path.join(name, 'entry_points_console_scripts.py'))
             if csf.is_file():
-                g = {}
-                l = g
-                exec(csf.read_text(), g, l)
-                for k in g.keys():
-                    if isinstance(k, str) and not k.startswith('_'):
-                        script_name = k.replace('_', '-')
+                for fn in get_global_funcnames(csf):
+                    if not fn.startswith('_'):
+                        script_name = fn.replace('_', '-')
                         console_scripts.append(
-                            f'{script_name}={name}.entry_points_console_scripts:{k}'
+                            f'{script_name}={name}.entry_points_console_scripts:{fn}'
                         )
         return console_scripts
 
