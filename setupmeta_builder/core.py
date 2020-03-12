@@ -41,11 +41,11 @@ class SetupAttrContext:
         '''
         return self._state
 
-    def get_fileinfo(self, relpath) -> fsoopify.FileInfo:
-        '''get `FileInfo` or `None`'''
+    def get_fileinfo(self, relpath: str) -> fsoopify.FileInfo:
+        '''get `FileInfo`.'''
         return fsoopify.FileInfo(str(self._root_path / relpath))
 
-    def get_text_content(self, relpath) -> str:
+    def get_text_content(self, relpath: str) -> str:
         '''get file content or `None`'''
         fileinfo = self.get_fileinfo(relpath)
         if fileinfo.is_file():
@@ -81,6 +81,7 @@ class SetupAttrContext:
 class SetupMetaBuilder:
     will_update_attrs = [
         'packages',
+        'py_modules',
         'long_description',
         'name',
         'version',
@@ -115,6 +116,34 @@ class SetupMetaBuilder:
 
         ctx.setup_attrs['packages'] = find_packages(where=str(ctx.root_path))
 
+    def update_py_modules(self, ctx: SetupAttrContext):
+        # description:
+        # https://packaging.python.org/guides/distributing-packages-using-setuptools/#py-modules
+        #   If your project contains any single-file Python modules that aren’t part of a package,
+        #   set py_modules to a list of the names of the modules (minus the .py extension)
+        #   in order to make setuptools aware of them.
+
+        packages = ctx.setup_attrs['packages']
+        if packages:
+            return # only discover if no packages.
+
+        proj_name = ctx.root_path.name
+
+        py_modules = []
+        search_names = []
+        search_names.append(proj_name)
+        if proj_name.startswith('python-'):
+            search_names.append(proj_name[len('python-'):])
+        if proj_name.endswith('-python'):
+            search_names.append(proj_name[:-len('-python')])
+        for name in search_names:
+            if ctx.get_fileinfo(f'{name}.py').is_file():
+                py_modules.append(name)
+                break
+
+        if py_modules:
+            ctx.setup_attrs['py_modules'] = py_modules
+
     def update_long_description(self, ctx: SetupAttrContext):
         rst = ctx.get_text_content('README.rst')
         if rst is not None:
@@ -132,14 +161,24 @@ class SetupMetaBuilder:
     def update_name(self, ctx: SetupAttrContext):
         def parse_name():
             packages = ctx.setup_attrs.get('packages')
-            if not packages:
-                raise RuntimeError(f'unable to parse name: no packages found')
-            ns = set()
-            for pkg in packages:
-                ns.add(pkg.partition('.')[0])
-            if len(ns) > 1:
-                raise RuntimeError(f'unable to pick name from: {ns}')
-            return list(ns)[0]
+            if packages:
+                ns = set()
+                for pkg in packages:
+                    ns.add(pkg.partition('.')[0])
+                if len(ns) > 1:
+                    raise RuntimeError(f'unable to pick name from: {ns}')
+                return list(ns)[0]
+
+            py_modules = ctx.setup_attrs.get('py_modules')
+            if py_modules:
+                ns = set()
+                for mod in py_modules:
+                    ns.add(mod.partition('.')[0])
+                if len(ns) > 1:
+                    raise RuntimeError(f'unable to pick name from: {ns}')
+                return list(ns)[0]
+
+            raise RuntimeError(f'unable to parse name: no packages or modules found')
 
         name = parse_name()
         if name:
