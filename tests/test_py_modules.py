@@ -15,11 +15,9 @@ def test_py_modules():
         'classifiers': [],
         'entry_points': {},
         'include_package_data': True,
-        'install_requires': None,
         'long_description': '',
         'name': 'mod1',
         'packages': [],
-        'tests_require': None,
         'zip_safe': False,
     }
 
@@ -30,11 +28,9 @@ def test_py_modules_with_python_prefix():
         'classifiers': [],
         'entry_points': {},
         'include_package_data': True,
-        'install_requires': None,
         'long_description': '',
         'name': 'mod2',
         'packages': [],
-        'tests_require': None,
         'zip_safe': False,
     }
 
@@ -45,10 +41,8 @@ def test_py_modules_with_python_suffix():
         'classifiers': [],
         'entry_points': {},
         'include_package_data': True,
-        'install_requires': None,
         'long_description': '',
         'name': 'mod3',
         'packages': [],
-        'tests_require': None,
         'zip_safe': False,
     }

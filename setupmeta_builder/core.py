@@ -267,7 +267,11 @@ class SetupMetaBuilder:
         pass
 
     def update_install_requires(self, ctx: SetupAttrContext):
-        ctx.setup_attrs['install_requires'] = self.requires_resolver.resolve_install_requires(ctx)
+        requires = self.requires_resolver.resolve_install_requires(ctx)
+        if requires is not None:
+            ctx.setup_attrs['install_requires'] = requires
 
     def update_tests_require(self, ctx: SetupAttrContext):
-        ctx.setup_attrs['tests_require'] = self.requires_resolver.resolve_tests_require(ctx)
+        requires = self.requires_resolver.resolve_tests_require(ctx)
+        if requires is not None:
+            ctx.setup_attrs['tests_require'] = requires
