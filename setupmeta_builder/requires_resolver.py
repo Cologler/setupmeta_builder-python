@@ -6,8 +6,8 @@
 # ----------
 
 from abc import abstractmethod, ABC
-
-import pkg_resources
+import os
+import re
 
 
 class RequiresResolver(ABC):
@@ -16,15 +16,17 @@ class RequiresResolver(ABC):
     def name(self):
         raise NotImplementedError
 
-    @abstractmethod
     def resolve_install_requires(self, ctx) -> list:
-        raise NotImplementedError
+        return None
 
-    @abstractmethod
     def resolve_tests_require(self, ctx) -> list:
-        raise NotImplementedError
+        return None
 
-    def _sorted_list(self, ls):
+    def resolve_extras_require(self, ctx) -> dict:
+        return None
+
+    @staticmethod
+    def _sorted_list(ls):
         return list(sorted(ls))
 
 
@@ -33,21 +35,33 @@ class RequirementsTxtRequiresResolver(RequiresResolver):
     def name(self):
         return 'requirements.txt'
 
-    @staticmethod
-    def _package_to_require(pkg_info: pkg_resources.Requirement):
-        return pkg_info.name
+    @classmethod
+    def _requirements_to_require(cls, requirements: str):
+        requires = [l for l in requirements.splitlines() if l]
+        return cls._sorted_list(requires)
 
     def resolve_install_requires(self, ctx) -> list:
         requirements = ctx.get_text_content('requirements.txt')
         if requirements is None:
             return None
 
-        return self._sorted_list(
-            [self._package_to_require(r) for r in pkg_resources.parse_requirements(requirements)]
-        )
+        return self._requirements_to_require(requirements)
 
     def resolve_tests_require(self, ctx) -> list:
         return None
+
+    def resolve_extras_require(self, ctx) -> dict:
+        root_path = str(ctx.root_path)
+        file_names = os.listdir(root_path)
+        extras_require = {}
+        for fn in file_names:
+            match = re.match(r'^requirements\.(?P<name>.+)\.txt$', fn, re.I)
+            if match:
+                extra_name = match['name']
+                requirements = ctx.get_text_content(fn)
+                extras_require[extra_name] = self._requirements_to_require(requirements)
+        if extras_require:
+            return extras_require
 
 
 class PipfileRequiresResolver(RequiresResolver):
@@ -70,7 +84,7 @@ class PipfileRequiresResolver(RequiresResolver):
     def _package_to_require(k, v):
         if v == '*':
             return k
-        raise NotImplementedError((k, v))
+        return k+v
 
     def _resolve_requires(self, ctx, attr_name, pf_key):
         pf = self._get_pipfile(ctx)
@@ -109,6 +123,12 @@ class ChainRequiresResolver(RequiresResolver):
             if ret is not None:
                 return ret
 
+    def resolve_extras_require(self, ctx) -> dict:
+        for r in self.resolvers:
+            ret = r.resolve_extras_require(ctx)
+            if ret is not None:
+                return ret
+
 
 class StrictRequiresResolver(RequiresResolver):
     def __init__(self, *resolvers):
@@ -141,6 +161,10 @@ class StrictRequiresResolver(RequiresResolver):
         rets = [(r, r.resolve_tests_require(ctx)) for r in self.resolvers]
         return self._get_result(rets)
 
+    def resolve_extras_require(self, ctx) -> dict:
+        rets = [(r, r.resolve_extras_require(ctx)) for r in self.resolvers]
+        return self._get_result(rets)
+
 
 class DefaultRequiresResolver(RequiresResolver):
     def __init__(self):
@@ -150,6 +174,9 @@ class DefaultRequiresResolver(RequiresResolver):
         )
         self._test_resolver = StrictRequiresResolver(
             PipfileRequiresResolver()
+        )
+        self._extras_resolver = StrictRequiresResolver(
+            RequirementsTxtRequiresResolver()
         )
 
     @property
@@ -161,3 +188,6 @@ class DefaultRequiresResolver(RequiresResolver):
 
     def resolve_tests_require(self, ctx) -> list:
         return self._test_resolver.resolve_tests_require(ctx)
+
+    def resolve_extras_require(self, ctx) -> dict:
+        return self._extras_resolver.resolve_extras_require(ctx)

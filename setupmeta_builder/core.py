@@ -97,6 +97,7 @@ class SetupMetaBuilder:
         'setup_requires',
         'install_requires',
         'tests_require',
+        'extras_require',
     ]
 
     def __init__(self):
@@ -275,3 +276,8 @@ class SetupMetaBuilder:
         requires = self.requires_resolver.resolve_tests_require(ctx)
         if requires is not None:
             ctx.setup_attrs['tests_require'] = requires
+
+    def update_extras_require(self, ctx: SetupAttrContext):
+        requires = self.requires_resolver.resolve_extras_require(ctx)
+        if requires is not None:
+            ctx.setup_attrs['extras_require'] = requires
