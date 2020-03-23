@@ -2,7 +2,8 @@
 #
 # Copyright (c) 2019~2999 - Cologler <skyoflw@gmail.com>
 # ----------
-#
+# all attrs from spec:
+# https://packaging.python.org/guides/distributing-packages-using-setuptools/
 # ----------
 
 import os
@@ -15,6 +16,8 @@ import fsoopify
 
 from .licenses import LICENSES
 from .requires_resolver import DefaultRequiresResolver
+from .version_resolver import update_version
+from .utils import get_global_funcnames
 
 class SetupAttrContext:
     def __init__(self, root_path=None):
@@ -38,11 +41,11 @@ class SetupAttrContext:
         '''
         return self._state
 
-    def get_fileinfo(self, relpath) -> fsoopify.FileInfo:
-        '''get `FileInfo` or `None`'''
+    def get_fileinfo(self, relpath: str) -> fsoopify.FileInfo:
+        '''get `FileInfo`.'''
         return fsoopify.FileInfo(str(self._root_path / relpath))
 
-    def get_text_content(self, relpath) -> str:
+    def get_text_content(self, relpath: str) -> str:
         '''get file content or `None`'''
         fileinfo = self.get_fileinfo(relpath)
         if fileinfo.is_file():
@@ -78,6 +81,7 @@ class SetupAttrContext:
 class SetupMetaBuilder:
     will_update_attrs = [
         'packages',
+        'py_modules',
         'long_description',
         'name',
         'version',
@@ -93,6 +97,7 @@ class SetupMetaBuilder:
         'setup_requires',
         'install_requires',
         'tests_require',
+        'extras_require',
     ]
 
     def __init__(self):
@@ -112,6 +117,34 @@ class SetupMetaBuilder:
 
         ctx.setup_attrs['packages'] = find_packages(where=str(ctx.root_path))
 
+    def update_py_modules(self, ctx: SetupAttrContext):
+        # description:
+        # https://packaging.python.org/guides/distributing-packages-using-setuptools/#py-modules
+        #   If your project contains any single-file Python modules that aren’t part of a package,
+        #   set py_modules to a list of the names of the modules (minus the .py extension)
+        #   in order to make setuptools aware of them.
+
+        packages = ctx.setup_attrs['packages']
+        if packages:
+            return # only discover if no packages.
+
+        proj_name = ctx.root_path.name
+
+        py_modules = []
+        search_names = []
+        search_names.append(proj_name)
+        if proj_name.startswith('python-'):
+            search_names.append(proj_name[len('python-'):])
+        if proj_name.endswith('-python'):
+            search_names.append(proj_name[:-len('-python')])
+        for name in search_names:
+            if ctx.get_fileinfo(f'{name}.py').is_file():
+                py_modules.append(name)
+                break
+
+        if py_modules:
+            ctx.setup_attrs['py_modules'] = py_modules
+
     def update_long_description(self, ctx: SetupAttrContext):
         rst = ctx.get_text_content('README.rst')
         if rst is not None:
@@ -129,34 +162,31 @@ class SetupMetaBuilder:
     def update_name(self, ctx: SetupAttrContext):
         def parse_name():
             packages = ctx.setup_attrs.get('packages')
-            if not packages:
-                raise RuntimeError(f'unable to parse name: no packages found')
-            ns = set()
-            for pkg in packages:
-                ns.add(pkg.partition('.')[0])
-            if len(ns) > 1:
-                raise RuntimeError(f'unable to pick name from: {ns}')
-            return list(ns)[0]
+            if packages:
+                ns = set()
+                for pkg in packages:
+                    ns.add(pkg.partition('.')[0])
+                if len(ns) > 1:
+                    raise RuntimeError(f'unable to pick name from: {ns}')
+                return list(ns)[0]
+
+            py_modules = ctx.setup_attrs.get('py_modules')
+            if py_modules:
+                ns = set()
+                for mod in py_modules:
+                    ns.add(mod.partition('.')[0])
+                if len(ns) > 1:
+                    raise RuntimeError(f'unable to pick name from: {ns}')
+                return list(ns)[0]
+
+            raise RuntimeError(f'unable to parse name: no packages or modules found')
 
         name = parse_name()
         if name:
             ctx.setup_attrs['name'] = name
 
-    def _parse_strict_version(self, tag):
-        from packaging.version import Version, parse
-        ver = parse(tag)
-        if isinstance(ver, Version):
-            return str(ver)
-
     def update_version(self, ctx: SetupAttrContext):
-        git_describe = ctx._run_git(['describe'])
-        if git_describe.returncode != 0:
-            return
-        describe_info: str = git_describe.stdout.strip()
-        tag = describe_info.split('-')[0]
-        ver = self._parse_strict_version(tag)
-        if ver:
-            ctx.setup_attrs['version'] = ver
+        update_version(ctx)
 
     def update_author(self, ctx: SetupAttrContext):
         author = ctx.get_pkgit_conf().get('author')
@@ -185,22 +215,15 @@ class SetupMetaBuilder:
             git_url = None
 
         if git_url:
-            from .utils import parse_url_from_git_https, parse_url_from_git_ssh
-            if git_url.startswith('git@'):
-                url = parse_url_from_git_ssh(git_url)
-            else:
-                url = parse_url_from_git_https(git_url)
-            ctx.setup_attrs['url'] = url
+            from .utils import parse_homepage_from_git_url
+            url = parse_homepage_from_git_url(git_url)
+            if url:
+                ctx.setup_attrs['url'] = url
 
 
     def update_license(self, ctx: SetupAttrContext):
-        lice = ctx.get_text_content('LICENSE')
-        if not lice:
-            return
-
-        lines = lice.splitlines()
-        if lines[0] in LICENSES:
-            ctx.setup_attrs['license'] = lines[0]
+        from .licenses import update_license
+        update_license(ctx)
 
     def update_classifiers(self, ctx: SetupAttrContext):
         # see: https://pypi.org/classifiers/
@@ -227,14 +250,11 @@ class SetupMetaBuilder:
         if name:
             csf = ctx.get_fileinfo(os.path.join(name, 'entry_points_console_scripts.py'))
             if csf.is_file():
-                g = {}
-                l = g
-                exec(csf.read_text(), g, l)
-                for k in g.keys():
-                    if isinstance(k, str) and not k.startswith('_'):
-                        script_name = k.replace('_', '-')
+                for fn in get_global_funcnames(csf):
+                    if not fn.startswith('_'):
+                        script_name = fn.replace('_', '-')
                         console_scripts.append(
-                            f'{script_name}={name}.entry_points_console_scripts:{k}'
+                            f'{script_name}={name}.entry_points_console_scripts:{fn}'
                         )
         return console_scripts
 
@@ -248,7 +268,16 @@ class SetupMetaBuilder:
         pass
 
     def update_install_requires(self, ctx: SetupAttrContext):
-        ctx.setup_attrs['install_requires'] = self.requires_resolver.resolve_install_requires(ctx)
+        requires = self.requires_resolver.resolve_install_requires(ctx)
+        if requires is not None:
+            ctx.setup_attrs['install_requires'] = requires
 
     def update_tests_require(self, ctx: SetupAttrContext):
-        ctx.setup_attrs['tests_require'] = self.requires_resolver.resolve_tests_require(ctx)
+        requires = self.requires_resolver.resolve_tests_require(ctx)
+        if requires is not None:
+            ctx.setup_attrs['tests_require'] = requires
+
+    def update_extras_require(self, ctx: SetupAttrContext):
+        requires = self.requires_resolver.resolve_extras_require(ctx)
+        if requires is not None:
+            ctx.setup_attrs['extras_require'] = requires

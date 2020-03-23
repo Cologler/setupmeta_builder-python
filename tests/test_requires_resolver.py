@@ -5,6 +5,8 @@
 #
 # ----------
 
+import os
+
 import fsoopify
 
 from setupmeta_builder.core import SetupAttrContext
@@ -27,27 +29,39 @@ def test_requirements_txt_resolve_on_non_module():
     resolver = RequirementsTxtRequiresResolver()
     assert resolver.resolve_install_requires(ctx) is None
     assert resolver.resolve_tests_require(ctx) is None
+    assert resolver.resolve_extras_require(ctx) is None
 
 def test_requirements_txt_resolve_on_current_module():
     ctx = SetupAttrContext()
     resolver = RequirementsTxtRequiresResolver()
     assert resolver.resolve_install_requires(ctx) == install_requires
     assert resolver.resolve_tests_require(ctx) is None
+    assert resolver.resolve_extras_require(ctx) is None
+
+def test_requirements_txt_resolve_extras_require():
+    ctx = SetupAttrContext(os.path.join('tests', 'only_requires_projs', 'mod1'))
+    resolver = RequirementsTxtRequiresResolver()
+    assert resolver.resolve_extras_require(ctx) == {
+        'some': ['fsoopify']
+    }
 
 def test_pipfile_resolve_on_non_module():
     ctx = _get_non_module_ctx()
     resolver = PipfileRequiresResolver()
     assert resolver.resolve_install_requires(ctx) is None
     assert resolver.resolve_tests_require(ctx) is None
+    assert resolver.resolve_extras_require(ctx) is None
 
 def test_pipfile_resolve_on_current_module():
     ctx = SetupAttrContext()
     resolver = PipfileRequiresResolver()
     assert resolver.resolve_install_requires(ctx) == install_requires
     assert resolver.resolve_tests_require(ctx) == test_require
+    assert resolver.resolve_extras_require(ctx) is None
 
 def test_default_resolve_on_current_module():
     ctx = SetupAttrContext()
     resolver = DefaultRequiresResolver()
     assert resolver.resolve_install_requires(ctx) == install_requires
     assert resolver.resolve_tests_require(ctx) == test_require
+    assert resolver.resolve_extras_require(ctx) is None
