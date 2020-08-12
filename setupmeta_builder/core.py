@@ -131,8 +131,10 @@ class SetupMetaBuilder:
         proj_name = ctx.root_path.name
 
         py_modules = []
+
         search_names = []
         search_names.append(proj_name)
+        search_names.append(proj_name.replace('-', '_'))
         if proj_name.startswith('python-'):
             search_names.append(proj_name[len('python-'):])
         if proj_name.endswith('-python'):
