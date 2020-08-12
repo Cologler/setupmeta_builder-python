@@ -166,30 +166,19 @@ class SetupMetaBuilder:
         ctx.setup_attrs.setdefault('long_description', '')
 
     def update_name(self, ctx: SetupAttrContext):
-        def parse_name():
-            packages = ctx.setup_attrs.get('packages')
-            if packages:
-                ns = set()
-                for pkg in packages:
-                    ns.add(pkg.partition('.')[0])
-                if len(ns) > 1:
-                    raise RuntimeError(f'unable to pick name from: {ns}')
-                return list(ns)[0]
+        packages = ctx.setup_attrs.get('packages', [])
+        py_modules = ctx.setup_attrs.get('py_modules', [])
+        sources = packages + py_modules
+        if not sources:
+            raise RuntimeError(f'unable to parse name: no packages or py_modules found.')
 
-            py_modules = ctx.setup_attrs.get('py_modules')
-            if py_modules:
-                ns = set()
-                for mod in py_modules:
-                    ns.add(mod.partition('.')[0])
-                if len(ns) > 1:
-                    raise RuntimeError(f'unable to pick name from: {ns}')
-                return list(ns)[0]
+        ns = set()
+        for src in sources:
+            ns.add(src.partition('.')[0])
+        if len(ns) > 1:
+            raise RuntimeError(f'unable to pick name from: {ns}')
 
-            raise RuntimeError(f'unable to parse name: no packages or modules found')
-
-        name = parse_name()
-        if name:
-            ctx.setup_attrs['name'] = name
+        ctx.setup_attrs['name'] = list(ns)[0]
 
     def update_version(self, ctx: SetupAttrContext):
         update_version(ctx)
