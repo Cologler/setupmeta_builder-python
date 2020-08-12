@@ -14,6 +14,7 @@ from collections import ChainMap
 
 import fsoopify
 
+from .consts import SECONDARY_PACKAGES
 from .licenses import LICENSES
 from .requires_resolver import DefaultRequiresResolver
 from .version_resolver import update_version
@@ -115,7 +116,12 @@ class SetupMetaBuilder:
     def update_packages(self, ctx: SetupAttrContext):
         from setuptools import find_packages
 
-        ctx.setup_attrs['packages'] = find_packages(where=str(ctx.root_path))
+        packages = find_packages(where=str(ctx.root_path))
+        if len(packages) > 1:
+            for pkg in SECONDARY_PACKAGES:
+                if pkg in packages:
+                    packages.remove(pkg)
+        ctx.setup_attrs['packages'] = packages
 
     def update_py_modules(self, ctx: SetupAttrContext):
         # description:
