@@ -5,6 +5,7 @@
 #
 # ----------
 
-SECONDARY_PACKAGES = (
-    'tests', # use on pytest
+EXCLUDED_PACKAGES = (
+    # pytest:
+    'tests', 'tests.*',
 )
