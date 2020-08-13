@@ -191,6 +191,26 @@ class StrictRequiresResolver(RequiresResolver):
         childs_name = ', '.join([c.name for c in self.resolvers])
         return f'strict({childs_name})'
 
+    def _select_requirement(self, name, requirements):
+        reqs = [i[1] for i in requirements]
+
+        if len(reqs) > 1 and any(not r.specifier for r in reqs):
+            reqs = [r for r in reqs if not r.specifier]
+
+        if len(reqs) > 1:
+            if len(set(str(req) for rsl, req in requirements)) == 1:
+                # all same
+                return reqs[0]
+            reqs = [reqs[0]]
+
+        if len(reqs) == 1:
+            return reqs[0]
+
+        msg = '\n'.join([
+            f'{rsl.name} report: {req!r}' for rsl, req in requirements
+        ])
+        raise RuntimeError('different requirement from multi sources: \n' + msg)
+
     def _merge_results(self, rets: list):
         grouped_requirements = {}
         for resolver, requirements in rets:
@@ -202,15 +222,7 @@ class StrictRequiresResolver(RequiresResolver):
             rv = []
             for name in grouped_requirements:
                 requirements = grouped_requirements[name]
-                if len(requirements) == 1:
-                    rv.append(requirements[0][1])
-                elif len(set(str(req) for rsl, req in requirements)) == 1:
-                    rv.append(requirements[0][1])
-                else:
-                    msg = '\n'.join([
-                        f'{rsl.name} report: {req!r}' for rsl, req in requirements
-                    ])
-                    raise RuntimeError('different requirement from multi source: \n' + msg)
+                rv.append(self._select_requirement(name, requirements))
             return self._sorted_list(rv)
 
     def parse_install_requires(self, ctx) -> list:
