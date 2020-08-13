@@ -14,7 +14,7 @@ from collections import ChainMap
 
 import fsoopify
 
-from .consts import EXCLUDED_PACKAGES
+from .consts import EXCLUDED_PACKAGES, SETUP_ATTRS
 from .licenses import LICENSES
 from .requires_resolver import DefaultRequiresResolver
 from .version_resolver import update_version
@@ -92,26 +92,6 @@ class SetupAttrContext:
 
 
 class SetupMetaBuilder:
-    will_update_attrs = [
-        'packages',
-        'py_modules',
-        'long_description',
-        'name',
-        'version',
-        'author',
-        'author_email',
-        'url',
-        'license',
-        'classifiers',
-        'scripts',
-        'entry_points',
-        'zip_safe',
-        'include_package_data',
-        'setup_requires',
-        'install_requires',
-        'tests_require',
-        'extras_require',
-    ]
 
     def __init__(self):
         self.requires_resolver = DefaultRequiresResolver()
@@ -121,7 +101,7 @@ class SetupMetaBuilder:
         ]
 
     def fill_ctx(self, ctx: SetupAttrContext):
-        for attr in self.will_update_attrs:
+        for attr in SETUP_ATTRS:
             if attr not in ctx.setup_attrs:
                 getattr(self, f'update_{attr}')(ctx)
 

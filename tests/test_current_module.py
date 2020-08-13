@@ -29,7 +29,9 @@ def test_attrs_for_setupmeta_builder():
     assert 'Programming Language :: Python :: 3.8' in classifiers
 
     assert setup_attrs == {
-        'packages': ['setupmeta_builder'],
+        'packages': [
+            'setupmeta_builder', 'setupmeta_builder.cli'
+        ],
         'long_description_content_type': 'text/markdown',
         'name': 'setupmeta_builder',
         'author': 'Cologler',

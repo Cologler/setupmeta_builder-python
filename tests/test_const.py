@@ -5,12 +5,10 @@
 #
 # ----------
 
-from setupmeta_builder.core import (
-    SetupMetaBuilder
-)
+from setupmeta_builder.consts import SETUP_ATTRS
 
 def test_setup_meta_builder_update_attrs_order():
-    sorted_attrs = SetupMetaBuilder.will_update_attrs
+    sorted_attrs = list(SETUP_ATTRS)
     assert len(set(sorted_attrs)) == len(sorted_attrs), 'attrs should unique'
 
     def assert_order(before, after):
