@@ -80,7 +80,6 @@ def find_license_from_LICENSE(ctx):
             (lines[0], lines[1]),
             lines[0]
         )
-        print(keys, LICENSES)
         for key in keys:
             if key in LICENSES:
                 return LICENSES[key]
