@@ -18,7 +18,7 @@ from .consts import EXCLUDED_PACKAGES, SETUP_ATTRS
 from .licenses import LICENSES
 from .requires_resolver import DefaultRequiresResolver
 from .version_resolver import update_version
-from .utils import get_global_funcnames
+from .utils import get_global_funcnames, get_field
 from .utils_poetry import parse_author
 
 class SetupAttrContext:
@@ -174,8 +174,8 @@ class SetupMetaBuilder:
     def auto_name(self, ctx: SetupAttrContext):
         pyproject = ctx.get_pyproject_conf()
         tool = pyproject.get('tool', {})
-        name = tool.get('poetry', {}).get('name') or \
-                tool.get('flit', {}).get('metadata', {}).get('module')
+        name = get_field(tool, 'poetry.name') or \
+               get_field(tool, 'flit.metadata.module')
 
         if not name:
             def guess_name():
@@ -198,6 +198,11 @@ class SetupMetaBuilder:
             ctx.setup_attrs['name'] = name
 
     def auto_version(self, ctx: SetupAttrContext):
+        version = get_field(ctx.get_pyproject_conf(), 'tool.poetry.version')
+        if version:
+            ctx.setup_attrs.setdefault('version', version)
+
+    def update_version(self, ctx: SetupAttrContext):
         update_version(ctx)
 
     def auto_author(self, ctx: SetupAttrContext):
@@ -205,10 +210,7 @@ class SetupMetaBuilder:
         author_email = None
 
         # parse from pyproject
-        pyproject = ctx.get_pyproject_conf()
-        tool = pyproject.get('tool', {})
-        poetry = tool.get('poetry', {})
-        authors = tool.get('authors', [])
+        authors = get_field(ctx.get_pyproject_conf(), 'tool.poetry.authors', [])
         if authors:
             author_name, author_email = parse_author(authors[0])
 
