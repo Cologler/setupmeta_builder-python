@@ -21,11 +21,13 @@ from .version_resolver import update_version
 from .utils import get_global_funcnames
 
 class SetupAttrContext:
+    _pkgit_conf: dict = None
+    _pyproject_conf: dict = None
+
     def __init__(self, root_path=None):
         self._setup_attrs = {}
         self._root_path = Path(root_path) if root_path else Path.cwd()
         self._state = {}
-        self._pkgit_conf: dict = None
 
     @property
     def setup_attrs(self):
@@ -69,6 +71,16 @@ class SetupAttrContext:
             self._pkgit_conf = ChainMap(cwd_conf, global_conf)
 
         return self._pkgit_conf
+
+    def get_pyproject_conf(self) -> dict:
+        if self._pyproject_conf is None:
+            fileinfo = self.get_fileinfo('pyproject.toml')
+            if fileinfo.is_file():
+                self._pyproject_conf = fileinfo.load()
+            else:
+                self._pyproject_conf = {}
+
+        return self._pyproject_conf
 
     def _run_git(self, argv: list):
         gitdir = str(self.root_path / '.git')
@@ -166,19 +178,26 @@ class SetupMetaBuilder:
         ctx.setup_attrs.setdefault('long_description', '')
 
     def update_name(self, ctx: SetupAttrContext):
-        packages = ctx.setup_attrs.get('packages', [])
-        py_modules = ctx.setup_attrs.get('py_modules', [])
-        sources = packages + py_modules
-        if not sources:
-            raise RuntimeError(f'unable to parse name: no packages or py_modules found.')
+        def find_name_from_poetry():
+            name = ctx.get_pyproject_conf().get('tool', {}).get('poetry', {}).get('name')
+            return name
 
-        ns = set()
-        for src in sources:
-            ns.add(src.partition('.')[0])
-        if len(ns) > 1:
-            raise RuntimeError(f'unable to pick name from: {ns}')
+        def guess_name():
+            packages = ctx.setup_attrs.get('packages', [])
+            py_modules = ctx.setup_attrs.get('py_modules', [])
+            sources = packages + py_modules
+            if not sources:
+                raise RuntimeError(f'unable to parse name: no packages or py_modules found.')
 
-        ctx.setup_attrs['name'] = list(ns)[0]
+            ns = set()
+            for src in sources:
+                ns.add(src.partition('.')[0])
+            if len(ns) > 1:
+                raise RuntimeError(f'unable to pick name from: {ns}')
+
+            return list(ns)[0]
+
+        ctx.setup_attrs['name'] = find_name_from_poetry() or guess_name()
 
     def update_version(self, ctx: SetupAttrContext):
         update_version(ctx)

@@ -12,6 +12,7 @@ fsoopify = "*"
 pyyaml = "*"
 packaging = "*"
 prettyprinter = "*"
+toml = "*"
 
 [requires]
 python_version = "3.7"

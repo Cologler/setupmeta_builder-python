@@ -3,3 +3,4 @@ fsoopify
 pyyaml
 packaging
 prettyprinter
+toml
