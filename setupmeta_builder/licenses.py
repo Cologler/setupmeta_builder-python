@@ -16,6 +16,22 @@ LICENSE_GNU_LGPL_2_1 = 'GNU LGPLv2.1'
 LICENSE_GNU_LGPL_3 = 'GNU LGPLv3'
 LICENSE_MPL_2 = 'Mozilla Public License 2.0'
 
+_POETRY_LICENSE_MAPPING = {
+    'Apache-2.0':           LICENSE_APACHE_LICENSE_20,
+    'BSD-2-Clause':         None,
+    'BSD-3-Clause':         None,
+    'BSD-4-Clause':         None,
+    'GPL-2.0-only':         LICENSE_GNU_GPL_2,
+    'GPL-2.0-or-later':     None,
+    'GPL-3.0-only':         LICENSE_GNU_GPL_3,
+    'GPL-3.0-or-later':     None,
+    'LGPL-2.1-only':        LICENSE_GNU_LGPL_2_1,
+    'LGPL-2.1-or-later':    None,
+    'LGPL-3.0-only':        LICENSE_GNU_LGPL_3,
+    'LGPL-3.0-or-later':    None,
+    'MIT':                  LICENSE_MIT,
+}
+
 def _build_licenses():
     d = {}
     cg = dict(globals())
@@ -48,25 +64,32 @@ LICENSES_CLASSIFIERS_MAP = {
     LICENSE_MPL_2:              'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',
 }
 
-def update_license(ctx):
+def find_license_from_poetry(ctx):
+    pyproject = ctx.get_pyproject_conf()
+    tool = pyproject.get('tool', {})
+    poetry = tool.get('poetry', {})
+    license = tool.get('license', None)
+    if license:
+        return _POETRY_LICENSE_MAPPING.get(license)
+
+def find_license_from_LICENSE(ctx):
     lice = ctx.get_text_content('LICENSE')
-    if not lice:
-        return
+    if lice:
+        lines = [l.strip() for l in lice.splitlines()] + ['', '']
+        keys = (
+            (lines[0], lines[1]),
+            lines[0]
+        )
+        for key in keys:
+            if key in LICENSES:
+                return LICENSES[key]
 
-    lines = [l.strip() for l in lice.splitlines()]
+def update_license(ctx):
+    license = find_license_from_poetry(ctx) or \
+              find_license_from_LICENSE(ctx)
 
-    def line(n):
-        return lines[n-1] if len(lines) >= n else ''
-
-    def iter_keys():
-        yield (line(1), line(2))
-        yield line(1)
-
-    for key in iter_keys():
-        if key in LICENSES:
-            ctx.setup_attrs['license'] = LICENSES[key]
-            return
-
+    if license:
+        ctx.setup_attrs.setdefault('license', license)
 
 class LicenseClassifierUpdater(IClassifierUpdater):
     def update_classifiers(self, ctx, classifiers):

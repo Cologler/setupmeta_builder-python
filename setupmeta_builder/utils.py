@@ -37,3 +37,13 @@ def get_global_funcnames(pyfile: fsoopify.FileInfo) -> list:
         if isinstance(stmt, ast.FunctionDef):
             funcnames.append(stmt.name)
     return funcnames
+
+def get_field(d: dict, path: str, default=None):
+    '''
+    example: get_field(pyproject, 'tool.poetry.version')
+    '''
+
+    parts = path.split('.')
+    for field in parts[:-1]:
+        d = d.get(field, {})
+    return d.get(parts[-1], default)

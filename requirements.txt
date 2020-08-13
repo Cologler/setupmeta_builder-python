@@ -3,3 +3,5 @@ fsoopify
 pyyaml
 packaging
 prettyprinter
+toml
+poetry
