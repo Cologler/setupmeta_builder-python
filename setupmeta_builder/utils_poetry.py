@@ -36,6 +36,10 @@ def get_requirements(items: dict) -> Dict[str, Requirement]:
             raise TypeError(type(v))
 
         if vc:
-            rv[k] = Requirement(k + str(vc))
+            vcs = str(vc)
+            if vcs == '*':
+                rv[k] = Requirement(k)
+            else:
+                rv[k] = Requirement(k + vcs)
 
     return rv
