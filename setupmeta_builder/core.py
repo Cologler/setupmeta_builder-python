@@ -19,6 +19,7 @@ from .licenses import LICENSES
 from .requires_resolver import DefaultRequiresResolver
 from .version_resolver import update_version
 from .utils import get_global_funcnames
+from .utils_poetry import parse_author
 
 class SetupAttrContext:
     _pkgit_conf: dict = None
@@ -101,12 +102,6 @@ class SetupMetaBuilder:
         ]
 
     def fill_ctx(self, ctx: SetupAttrContext):
-        # resolve attr from user explicit configured
-        for attr in SETUP_ATTRS:
-            method = getattr(self, f'prepare_{attr}', None)
-            if method is not None:
-                method(ctx)
-
         # resolve attr from setupmeta_builder auto detect
         for attr in SETUP_ATTRS:
             method = getattr(self, f'auto_{attr}', None)
@@ -123,15 +118,6 @@ class SetupMetaBuilder:
             method = getattr(self, f'post_{attr}', None)
             if method is not None:
                 method(ctx)
-
-    def prepare_name(self, ctx: SetupAttrContext):
-        if 'name' not in ctx.setup_attrs:
-            pyproject = ctx.get_pyproject_conf()
-            tool = pyproject.get('tool', {})
-            name = tool.get('poetry', {}).get('name') or \
-                   tool.get('flit', {}).get('metadata', {}).get('module')
-            if name:
-                ctx.setup_attrs['name'] = name
 
     def auto_packages(self, ctx: SetupAttrContext):
         from setuptools import find_packages
@@ -186,31 +172,54 @@ class SetupMetaBuilder:
         ctx.setup_attrs.setdefault('long_description', '')
 
     def auto_name(self, ctx: SetupAttrContext):
-        def guess_name():
-            packages = ctx.setup_attrs.get('packages', [])
-            py_modules = ctx.setup_attrs.get('py_modules', [])
-            sources = packages + py_modules
-            if not sources:
-                raise RuntimeError(f'unable to parse name: no packages or py_modules found.')
+        pyproject = ctx.get_pyproject_conf()
+        tool = pyproject.get('tool', {})
+        name = tool.get('poetry', {}).get('name') or \
+                tool.get('flit', {}).get('metadata', {}).get('module')
 
-            ns = set()
-            for src in sources:
-                ns.add(src.partition('.')[0])
-            if len(ns) > 1:
-                raise RuntimeError(f'unable to pick name from: {ns}')
+        if not name:
+            def guess_name():
+                packages = ctx.setup_attrs.get('packages', [])
+                py_modules = ctx.setup_attrs.get('py_modules', [])
+                sources = packages + py_modules
+                if not sources:
+                    raise RuntimeError(f'unable to parse name: no packages or py_modules found.')
 
-            return list(ns)[0]
+                ns = set()
+                for src in sources:
+                    ns.add(src.partition('.')[0])
+                if len(ns) > 1:
+                    raise RuntimeError(f'unable to pick name from: {ns}')
 
-        if 'name' not in ctx.setup_attrs:
-            ctx.setup_attrs['name'] = guess_name()
+                return list(ns)[0]
+            name = guess_name()
+
+        if name:
+            ctx.setup_attrs['name'] = name
 
     def auto_version(self, ctx: SetupAttrContext):
         update_version(ctx)
 
     def auto_author(self, ctx: SetupAttrContext):
-        author = ctx.get_pkgit_conf().get('author')
-        if author:
-            ctx.setup_attrs['author'] = author
+        author_name = None
+        author_email = None
+
+        # parse from pyproject
+        pyproject = ctx.get_pyproject_conf()
+        tool = pyproject.get('tool', {})
+        poetry = tool.get('poetry', {})
+        authors = tool.get('authors', [])
+        if authors:
+            author_name, author_email = parse_author(authors[0])
+
+        # parse from pkgit
+        if author_name is None:
+            author_name = ctx.get_pkgit_conf().get('author')
+
+        if author_name:
+            ctx.setup_attrs['author'] = author_name
+        if author_email:
+            ctx.setup_attrs.setdefault('author_email', author_email)
 
     def auto_author_email(self, ctx: SetupAttrContext):
         author_email = ctx.get_pkgit_conf().get('author_email')
