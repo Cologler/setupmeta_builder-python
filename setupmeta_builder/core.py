@@ -101,11 +101,19 @@ class SetupMetaBuilder:
         ]
 
     def fill_ctx(self, ctx: SetupAttrContext):
+        # resolve attr from user explicit configured
         for attr in SETUP_ATTRS:
             method = getattr(self, f'prepare_{attr}', None)
             if method is not None:
                 method(ctx)
 
+        # resolve attr from setupmeta_builder auto detect
+        for attr in SETUP_ATTRS:
+            method = getattr(self, f'auto_{attr}', None)
+            if method is not None and attr not in ctx.setup_attrs:
+                method(ctx)
+
+        # update attrs (like version etc)
         for attr in SETUP_ATTRS:
             method = getattr(self, f'update_{attr}', None)
             if method is not None:
@@ -125,7 +133,7 @@ class SetupMetaBuilder:
             if name:
                 ctx.setup_attrs['name'] = name
 
-    def update_packages(self, ctx: SetupAttrContext):
+    def auto_packages(self, ctx: SetupAttrContext):
         from setuptools import find_packages
 
         packages = find_packages(
@@ -133,7 +141,7 @@ class SetupMetaBuilder:
             exclude=EXCLUDED_PACKAGES)
         ctx.setup_attrs['packages'] = packages
 
-    def update_py_modules(self, ctx: SetupAttrContext):
+    def auto_py_modules(self, ctx: SetupAttrContext):
         # description:
         # https://packaging.python.org/guides/distributing-packages-using-setuptools/#py-modules
         #   If your project contains any single-file Python modules that aren’t part of a package,
@@ -163,7 +171,7 @@ class SetupMetaBuilder:
         if py_modules:
             ctx.setup_attrs['py_modules'] = py_modules
 
-    def update_long_description(self, ctx: SetupAttrContext):
+    def auto_long_description(self, ctx: SetupAttrContext):
         rst = ctx.get_text_content('README.rst')
         if rst is not None:
             ctx.setup_attrs['long_description'] = rst
@@ -177,7 +185,7 @@ class SetupMetaBuilder:
 
         ctx.setup_attrs.setdefault('long_description', '')
 
-    def update_name(self, ctx: SetupAttrContext):
+    def auto_name(self, ctx: SetupAttrContext):
         def guess_name():
             packages = ctx.setup_attrs.get('packages', [])
             py_modules = ctx.setup_attrs.get('py_modules', [])
@@ -196,20 +204,20 @@ class SetupMetaBuilder:
         if 'name' not in ctx.setup_attrs:
             ctx.setup_attrs['name'] = guess_name()
 
-    def update_version(self, ctx: SetupAttrContext):
+    def auto_version(self, ctx: SetupAttrContext):
         update_version(ctx)
 
-    def update_author(self, ctx: SetupAttrContext):
+    def auto_author(self, ctx: SetupAttrContext):
         author = ctx.get_pkgit_conf().get('author')
         if author:
             ctx.setup_attrs['author'] = author
 
-    def update_author_email(self, ctx: SetupAttrContext):
+    def auto_author_email(self, ctx: SetupAttrContext):
         author_email = ctx.get_pkgit_conf().get('author_email')
         if author_email:
             ctx.setup_attrs['author_email'] = author_email
 
-    def update_url(self, ctx: SetupAttrContext):
+    def auto_url(self, ctx: SetupAttrContext):
         def get_url_from_remote(name):
             git_remote_get_url = ctx._run_git(['remote', 'get-url', name])
             if git_remote_get_url.returncode != 0:
@@ -231,7 +239,7 @@ class SetupMetaBuilder:
             if url:
                 ctx.setup_attrs['url'] = url
 
-    def update_license(self, ctx: SetupAttrContext):
+    def auto_license(self, ctx: SetupAttrContext):
         from .licenses import update_license
         update_license(ctx)
 
@@ -244,10 +252,10 @@ class SetupMetaBuilder:
 
         ctx.setup_attrs['classifiers'] = list(sorted(set(classifiers)))
 
-    def update_scripts(self, ctx: SetupAttrContext):
+    def auto_scripts(self, ctx: SetupAttrContext):
         pass
 
-    def update_entry_points(self, ctx: SetupAttrContext):
+    def auto_entry_points(self, ctx: SetupAttrContext):
         entry_points = {}
         console_scripts = self._get_entry_points_console_scripts(ctx)
         if console_scripts:
@@ -268,26 +276,26 @@ class SetupMetaBuilder:
                         )
         return console_scripts
 
-    def update_zip_safe(self, ctx: SetupAttrContext):
+    def auto_zip_safe(self, ctx: SetupAttrContext):
         ctx.setup_attrs['zip_safe'] = False
 
-    def update_include_package_data(self, ctx: SetupAttrContext):
+    def auto_include_package_data(self, ctx: SetupAttrContext):
         ctx.setup_attrs['include_package_data'] = True
 
-    def update_setup_requires(self, ctx: SetupAttrContext):
+    def auto_setup_requires(self, ctx: SetupAttrContext):
         pass
 
-    def update_install_requires(self, ctx: SetupAttrContext):
+    def auto_install_requires(self, ctx: SetupAttrContext):
         requires = self.requires_resolver.resolve_install_requires(ctx)
         if requires is not None:
             ctx.setup_attrs['install_requires'] = requires
 
-    def update_tests_require(self, ctx: SetupAttrContext):
+    def auto_tests_require(self, ctx: SetupAttrContext):
         requires = self.requires_resolver.resolve_tests_require(ctx)
         if requires is not None:
             ctx.setup_attrs['tests_require'] = requires
 
-    def update_extras_require(self, ctx: SetupAttrContext):
+    def auto_extras_require(self, ctx: SetupAttrContext):
         requires = self.requires_resolver.resolve_extras_require(ctx)
         if requires is not None:
             ctx.setup_attrs['extras_require'] = requires
