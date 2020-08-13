@@ -108,13 +108,22 @@ class SetupMetaBuilder:
 
         for attr in SETUP_ATTRS:
             method = getattr(self, f'update_{attr}', None)
-            if method is not None and attr not in ctx.setup_attrs:
+            if method is not None:
                 method(ctx)
 
         for attr in SETUP_ATTRS:
             method = getattr(self, f'post_{attr}', None)
             if method is not None:
                 method(ctx)
+
+    def prepare_name(self, ctx: SetupAttrContext):
+        if 'name' not in ctx.setup_attrs:
+            pyproject = ctx.get_pyproject_conf()
+            tool = pyproject.get('tool', {})
+            name = tool.get('poetry', {}).get('name') or \
+                   tool.get('flit', {}).get('metadata', {}).get('module')
+            if name:
+                ctx.setup_attrs['name'] = name
 
     def update_packages(self, ctx: SetupAttrContext):
         from setuptools import find_packages
@@ -169,10 +178,6 @@ class SetupMetaBuilder:
         ctx.setup_attrs.setdefault('long_description', '')
 
     def update_name(self, ctx: SetupAttrContext):
-        def find_name_from_poetry():
-            name = ctx.get_pyproject_conf().get('tool', {}).get('poetry', {}).get('name')
-            return name
-
         def guess_name():
             packages = ctx.setup_attrs.get('packages', [])
             py_modules = ctx.setup_attrs.get('py_modules', [])
@@ -188,7 +193,8 @@ class SetupMetaBuilder:
 
             return list(ns)[0]
 
-        ctx.setup_attrs['name'] = find_name_from_poetry() or guess_name()
+        if 'name' not in ctx.setup_attrs:
+            ctx.setup_attrs['name'] = guess_name()
 
     def update_version(self, ctx: SetupAttrContext):
         update_version(ctx)

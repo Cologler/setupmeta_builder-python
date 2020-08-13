@@ -7,12 +7,14 @@
 
 import sys
 
-def get_setup_attrs(root_path=None) -> dict:
+def get_setup_attrs(root_path=None, attrs=None) -> dict:
     '''
     get the auto generated attrs dict.
     '''
     from .core import SetupAttrContext, SetupMetaBuilder
     ctx = SetupAttrContext(root_path)
+    if attrs is not None:
+        ctx.setup_attrs.update(attrs)
     SetupMetaBuilder().fill_ctx(ctx)
     return ctx.setup_attrs
 
@@ -20,7 +22,7 @@ def setup_it(**attrs):
     '''
     just enjoy the auto setup!
     '''
-    setup_attrs = get_setup_attrs()
+    setup_attrs = get_setup_attrs(attrs=attrs)
     setup_attrs.update(attrs)
 
     def print_id():
