@@ -13,6 +13,7 @@ pyyaml = "*"
 packaging = "*"
 prettyprinter = "*"
 toml = "*"
+poetry = "*"
 
 [requires]
 python_version = "3.7"
