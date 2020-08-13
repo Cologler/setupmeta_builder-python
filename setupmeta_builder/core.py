@@ -243,15 +243,6 @@ class SetupMetaBuilder:
         from .licenses import update_license
         update_license(ctx)
 
-    def post_classifiers(self, ctx: SetupAttrContext):
-        # see: https://pypi.org/classifiers/
-        classifiers = []
-
-        for updater in self.classifier_updaters:
-            updater.update_classifiers(ctx, classifiers)
-
-        ctx.setup_attrs['classifiers'] = list(sorted(set(classifiers)))
-
     def auto_scripts(self, ctx: SetupAttrContext):
         pass
 
@@ -299,3 +290,12 @@ class SetupMetaBuilder:
         requires = self.requires_resolver.resolve_extras_require(ctx)
         if requires is not None:
             ctx.setup_attrs['extras_require'] = requires
+
+    def post_classifiers(self, ctx: SetupAttrContext):
+        # see: https://pypi.org/classifiers/
+        classifiers = ctx.setup_attrs.get('classifiers', [])
+
+        for updater in self.classifier_updaters:
+            updater.update_classifiers(ctx, classifiers)
+
+        ctx.setup_attrs['classifiers'] = list(sorted(set(classifiers)))
