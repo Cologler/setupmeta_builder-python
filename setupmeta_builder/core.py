@@ -102,8 +102,19 @@ class SetupMetaBuilder:
 
     def fill_ctx(self, ctx: SetupAttrContext):
         for attr in SETUP_ATTRS:
-            if attr not in ctx.setup_attrs:
-                getattr(self, f'update_{attr}')(ctx)
+            method = getattr(self, f'prepare_{attr}', None)
+            if method is not None:
+                method(ctx)
+
+        for attr in SETUP_ATTRS:
+            method = getattr(self, f'update_{attr}', None)
+            if method is not None and attr not in ctx.setup_attrs:
+                method(ctx)
+
+        for attr in SETUP_ATTRS:
+            method = getattr(self, f'post_{attr}', None)
+            if method is not None:
+                method(ctx)
 
     def update_packages(self, ctx: SetupAttrContext):
         from setuptools import find_packages
@@ -214,12 +225,11 @@ class SetupMetaBuilder:
             if url:
                 ctx.setup_attrs['url'] = url
 
-
     def update_license(self, ctx: SetupAttrContext):
         from .licenses import update_license
         update_license(ctx)
 
-    def update_classifiers(self, ctx: SetupAttrContext):
+    def post_classifiers(self, ctx: SetupAttrContext):
         # see: https://pypi.org/classifiers/
         classifiers = []
 
