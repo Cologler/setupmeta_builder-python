@@ -86,10 +86,20 @@ class SetupAttrContext:
     def _run_git(self, argv: list):
         gitdir = str(self.root_path / '.git')
         argv = ['git', f'--git-dir={gitdir}'] + argv
-        return subprocess.run(argv, encoding='utf-8',
+        return subprocess.run(argv,
+            encoding='utf-8',
+            cwd=self.root_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
+
+    def _get_git_output(self, argv: list) -> str:
+        '''
+        return None if returncode != 0
+        '''
+        cp = self._run_git(argv)
+        if cp.returncode == 0:
+            return cp.stdout.strip()
 
 
 class SetupMetaBuilder:
@@ -229,26 +239,23 @@ class SetupMetaBuilder:
             ctx.setup_attrs['author_email'] = author_email
 
     def auto_url(self, ctx: SetupAttrContext):
-        def get_url_from_remote(name):
-            git_remote_get_url = ctx._run_git(['remote', 'get-url', name])
-            if git_remote_get_url.returncode != 0:
-                return
-            return git_remote_get_url.stdout.strip()
+        homepage = get_field(ctx.get_pyproject_conf(), 'tool.poetry.homepage')
 
-        git_remote = ctx._run_git(['remote'])
-        if git_remote.returncode != 0:
-            return
-        lines = git_remote.stdout.strip().splitlines()
-        if 'origin' in lines:
-            git_url = get_url_from_remote('origin')
-        else:
-            git_url = None
+        if homepage is None:
+            git_remote_stdout = ctx._get_git_output(['remote'])
+            if git_remote_stdout:
+                lines = git_remote_stdout.splitlines()
+                if 'origin' in lines:
+                    git_url = ctx._get_git_output(['remote', 'get-url', 'origin'])
+                else:
+                    git_url = None
 
-        if git_url:
-            from .utils import parse_homepage_from_git_url
-            url = parse_homepage_from_git_url(git_url)
-            if url:
-                ctx.setup_attrs['url'] = url
+                if git_url:
+                    from .utils import parse_homepage_from_git_url
+                    homepage = parse_homepage_from_git_url(git_url)
+
+        if homepage:
+            ctx.setup_attrs['url'] = homepage
 
     def auto_license(self, ctx: SetupAttrContext):
         from .licenses import update_license
