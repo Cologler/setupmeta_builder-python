@@ -246,7 +246,7 @@ class StrictRequiresResolver(RequiresResolver):
         for k, v in raw_extras.items():
             extras[k] = self._merge_results(v)
 
-        return extras
+        return extras if extras else None
 
 
 class DefaultRequiresResolver(RequiresResolver):
