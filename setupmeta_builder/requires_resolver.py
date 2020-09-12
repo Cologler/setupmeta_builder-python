@@ -235,7 +235,18 @@ class StrictRequiresResolver(RequiresResolver):
 
     def parse_extras_require(self, ctx) -> dict:
         rets = [(r, r.parse_extras_require(ctx)) for r in self.resolvers]
-        return self._merge_results(rets)
+
+        # merge extras dict:
+        raw_extras = {}
+        for resolver, requirements in rets:
+            if requirements:
+                for k, v in requirements.items():
+                    raw_extras.setdefault(k, []).append((resolver, v))
+        extras = {}
+        for k, v in raw_extras.items():
+            extras[k] = self._merge_results(v)
+
+        return extras
 
 
 class DefaultRequiresResolver(RequiresResolver):
