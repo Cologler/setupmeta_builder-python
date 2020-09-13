@@ -7,6 +7,7 @@
 
 import fsoopify
 import re
+import functools
 
 def parse_homepage_from_git_url(git_url: str):
     'parse homepage url from a git url (or None if unable to parse)'
@@ -47,3 +48,18 @@ def get_field(d: dict, path: str, default=None):
     for field in parts[:-1]:
         d = d.get(field, {})
     return d.get(parts[-1], default)
+
+def store_state(state_key):
+    assert state_key is not None
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(ctx, *args, **kwargs):
+            try:
+                return ctx.state[state_key]
+            except KeyError:
+                rv = func(ctx, *args, **kwargs)
+                ctx.state[state_key] = rv
+                return rv
+        return wrapper
+    return decorator

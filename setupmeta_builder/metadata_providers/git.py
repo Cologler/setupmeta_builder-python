@@ -11,6 +11,7 @@ import subprocess
 from ..bases import (
     BaseMetadataProvider, IContext
 )
+from ..utils import store_state
 
 def get_git_output(ctx: IContext, argv: list) -> Optional[str]:
     gitdir = str(ctx.root_path / '.git')
@@ -24,17 +25,15 @@ def get_git_output(ctx: IContext, argv: list) -> Optional[str]:
     if proc.returncode == 0:
         return proc.stdout.strip()
 
-KEY_GIT_ORIGIN_URL = object()
+@store_state(object())
 def get_origin_url(ctx: IContext):
-    if KEY_GIT_ORIGIN_URL not in ctx.state:
-        origin_url = None
-        git_remote_stdout = get_git_output(ctx, ['remote'])
-        if git_remote_stdout:
-            lines = git_remote_stdout.splitlines()
-            if 'origin' in lines:
-                origin_url = get_git_output(ctx, ['remote', 'get-url', 'origin'])
-        ctx.state[KEY_GIT_ORIGIN_URL] = origin_url
-    return ctx.state[KEY_GIT_ORIGIN_URL]
+    origin_url = None
+    git_remote_stdout = get_git_output(ctx, ['remote'])
+    if git_remote_stdout:
+        lines = git_remote_stdout.splitlines()
+        if 'origin' in lines:
+            origin_url = get_git_output(ctx, ['remote', 'get-url', 'origin'])
+    return origin_url
 
 class GitMetadataProvider(BaseMetadataProvider):
     'the metadata provider base on git system.'
