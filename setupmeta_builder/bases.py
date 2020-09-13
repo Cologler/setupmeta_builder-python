@@ -14,6 +14,22 @@ import fsoopify
 class IContext(ABC):
     'the base context class.'
 
+    @property
+    @abstractmethod
+    def state(self) -> dict:
+        '''
+        get a dict for store or load states.
+        '''
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def root_path(self) -> fsoopify.Path:
+        '''
+        get the root path of project.
+        '''
+        raise NotImplementedError
+
     @abstractmethod
     def get_fileinfo(self, relpath: str) -> fsoopify.FileInfo:
         '''
@@ -41,4 +57,7 @@ class BaseMetadataProvider:
     ' the base metadata provider. '
 
     def get_long_description(self, ctx: IContext) -> Optional[LongDescription]:
+        pass
+
+    def get_homepage_url(self, ctx: IContext) -> Optional[str]:
         pass

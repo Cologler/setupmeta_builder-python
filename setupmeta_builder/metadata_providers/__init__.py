@@ -6,3 +6,4 @@
 # ----------
 
 from .filesystem import FileSystemMetadataProvider
+from .git import GitMetadataProvider

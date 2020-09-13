@@ -23,7 +23,8 @@ from .version_resolver import update_version
 from .utils import get_global_funcnames, get_field
 from .utils_poetry import parse_author
 from .metadata_providers import (
-    FileSystemMetadataProvider
+    FileSystemMetadataProvider,
+    GitMetadataProvider,
 )
 
 class SetupAttrContext(IContext):
@@ -247,17 +248,7 @@ class SetupMetaBuilder:
         homepage = get_field(ctx.get_pyproject_conf(), 'tool.poetry.homepage')
 
         if homepage is None:
-            git_remote_stdout = ctx._get_git_output(['remote'])
-            if git_remote_stdout:
-                lines = git_remote_stdout.splitlines()
-                if 'origin' in lines:
-                    git_url = ctx._get_git_output(['remote', 'get-url', 'origin'])
-                else:
-                    git_url = None
-
-                if git_url:
-                    from .utils import parse_homepage_from_git_url
-                    homepage = parse_homepage_from_git_url(git_url)
+            homepage = GitMetadataProvider().get_homepage_url(ctx)
 
         if homepage:
             ctx.setup_attrs['url'] = homepage
