@@ -12,6 +12,7 @@ import re
 
 from packaging.requirements import Requirement
 
+from .utils import get_field
 from .utils_poetry import get_requirements as poetry_get_requirements
 
 class RequiresResolver(ABC):
@@ -101,18 +102,34 @@ class PoetryRequiresResolver(RequiresResolver):
     def parse_install_requires(self, ctx) -> Optional[List[Requirement]]:
         datadict = self._get_dependencies(ctx, 'dependencies')
         if datadict:
-            requirements = poetry_get_requirements(datadict)
+            requirements = poetry_get_requirements(datadict, False)
             python_ver = requirements.pop('python', None) # currently ignore
             return list(requirements.values())
 
     def parse_tests_require(self, ctx) -> Optional[List[Requirement]]:
         datadict = self._get_dependencies(ctx, 'dev-dependencies')
         if datadict:
-            requirements = poetry_get_requirements(datadict)
+            requirements = poetry_get_requirements(datadict, False)
             python_ver = requirements.pop('python', None) # currently ignore
             return list(requirements.values())
 
     def parse_extras_require(self, ctx) -> Optional[Dict[str, List[Requirement]]]:
+        pyproject = ctx.get_pyproject_conf()
+        extras: dict = get_field(pyproject, 'tool.poetry.extras')
+        if extras and isinstance(extras, dict):
+            rv = {}
+            dependencies = self._get_dependencies(ctx, 'dependencies') or {}
+            dependencies.update(self._get_dependencies(ctx, 'dev-dependencies') or {})
+            requirements = poetry_get_requirements(dependencies, True)
+            for extra, pkgs in extras.items():
+                if pkgs and isinstance(pkgs, list):
+                    rv[extra] = []
+                    for pkg in pkgs:
+                        rv[extra].append(
+                            requirements.get(pkg) or Requirement(pkg)
+                        )
+            if rv:
+                return rv
         return None
 
 
