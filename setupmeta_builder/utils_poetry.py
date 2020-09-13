@@ -21,7 +21,7 @@ def parse_author(author: str) -> Tuple[str, str]:
         return author_name, author_email
     return author, None
 
-def get_requirements(items: dict) -> Dict[str, Requirement]:
+def get_requirements(items: dict, inculde_optional) -> Dict[str, Requirement]:
     rv = {}
     for k, v in items.items():
         vc = None
@@ -30,9 +30,10 @@ def get_requirements(items: dict) -> Dict[str, Requirement]:
             vc = parse_constraint(v)
 
         elif isinstance(v, dict):
-            version = v.get('version')
-            if isinstance(version, str):
-                vc = parse_constraint(version)
+            if not v.get('optional') or inculde_optional:
+                version = v.get('version')
+                if isinstance(version, str):
+                    vc = parse_constraint(version)
 
         else:
             raise NotImplementedError(type(v))
