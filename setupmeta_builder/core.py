@@ -6,6 +6,7 @@
 # https://packaging.python.org/guides/distributing-packages-using-setuptools/
 # ----------
 
+from typing import *
 import os
 import json
 import subprocess
@@ -15,13 +16,17 @@ from collections import ChainMap
 import fsoopify
 
 from .consts import EXCLUDED_PACKAGES, SETUP_ATTRS
+from .bases import IContext
 from .licenses import LICENSES
 from .requires_resolver import DefaultRequiresResolver
 from .version_resolver import update_version
 from .utils import get_global_funcnames, get_field
 from .utils_poetry import parse_author
+from .metadata_providers import (
+    FileSystemMetadataProvider
+)
 
-class SetupAttrContext:
+class SetupAttrContext(IContext):
     _pkgit_conf: dict = None
     _pyproject_conf: dict = None
 
@@ -49,8 +54,7 @@ class SetupAttrContext:
         '''get `FileInfo`.'''
         return fsoopify.FileInfo(str(self._root_path / relpath))
 
-    def get_text_content(self, relpath: str) -> str:
-        '''get file content or `None`'''
+    def get_text_content(self, relpath: str) -> Optional[str]:
         fileinfo = self.get_fileinfo(relpath)
         if fileinfo.is_file():
             return fileinfo.read_text()
@@ -168,16 +172,17 @@ class SetupMetaBuilder:
             ctx.setup_attrs['py_modules'] = py_modules
 
     def auto_long_description(self, ctx: SetupAttrContext):
-        rst = ctx.get_text_content('README.rst')
-        if rst is not None:
-            ctx.setup_attrs['long_description'] = rst
-            return
+        providers = [
+            FileSystemMetadataProvider()
+        ]
 
-        md = ctx.get_text_content('README.md')
-        if md is not None:
-            ctx.setup_attrs['long_description'] = md
-            ctx.setup_attrs['long_description_content_type'] = 'text/markdown'
-            return
+        for provider in providers:
+            long_description = provider.get_long_description(ctx)
+            if long_description:
+                ctx.setup_attrs['long_description'] = long_description.long_description
+                if long_description.long_description_content_type:
+                    ctx.setup_attrs['long_description_content_type'] = long_description.long_description_content_type
+                return
 
         ctx.setup_attrs.setdefault('long_description', '')
 
