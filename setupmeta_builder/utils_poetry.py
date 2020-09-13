@@ -30,10 +30,12 @@ def get_requirements(items: dict) -> Dict[str, Requirement]:
             vc = parse_constraint(v)
 
         elif isinstance(v, dict):
-            raise NotImplementedError
+            version = v.get('version')
+            if isinstance(version, str):
+                vc = parse_constraint(version)
 
         else:
-            raise TypeError(type(v))
+            raise NotImplementedError(type(v))
 
         if vc:
             vcs = str(vc)
