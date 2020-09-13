@@ -18,13 +18,13 @@ Done!
 
 `setupmeta_builder` try resolve other values like `install_requires` for you.
 
-| meta                           | resolve source                                               |
+| meta fields                    | resolve from                                                 |
 | ------------------------------ | ------------------------------------------------------------ |
 | `packages`                     | `find_packages()`                                            |
-| `name`                         | packages                                                     |
+| `name`                         | packages or `pyproject.toml`                                 |
 | `version`                      | `git.tag`                                                    |
 | `long_description`             | file: `README.[md|rst]`                                      |
-| `author` and `author_email`    | file: `.pkgit.json`                                          |
+| `author` and `author_email`    | file: `.pkgit.json` or `pyproject.toml`                      |
 | `url`                          | `git.origin.url`                                             |
 | `license`                      | file: `LICENSE`                                              |
 | `classifiers`                  | license and file `.travis.yml`                               |
