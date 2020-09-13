@@ -25,7 +25,7 @@ def get_git_output(ctx: IContext, argv: list) -> Optional[str]:
     if proc.returncode == 0:
         return proc.stdout.strip()
 
-@lru_cache
+@lru_cache(maxsize=None)
 def get_origin_url(ctx: IContext):
     origin_url = None
     git_remote_stdout = get_git_output(ctx, ['remote'])
