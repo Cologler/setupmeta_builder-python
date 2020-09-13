@@ -18,20 +18,20 @@ Done!
 
 `setupmeta_builder` try resolve other values like `install_requires` for you.
 
-|meta|resolve source|
-|:-|:-|
-|`packages`|`find_packages()`|
-|`name`|packages|
-|`version`|`git.tag`|
-|`long_description`|file: `README.[md|rst]`|
-|`author` and `author_email`|file: `.pkgit.json`|
-|`url`|`git.origin.url`|
-|`license`|file: `LICENSE`|
-|`classifiers`|license and file `.travis.yml`|
-|`install_requires`|files: `requirements.txt` or `pipfile`|
-|`tests_require`|file: `pipfile`|
-|`extras_require`|files: `requirements.*.txt`|
-|`entry_points.console_scripts`|all global functions from file `PACKAGE_ROOT\entry_points_console_scripts.py`|
+| meta                           | resolve source                                               |
+| ------------------------------ | ------------------------------------------------------------ |
+| `packages`                     | `find_packages()`                                            |
+| `name`                         | packages                                                     |
+| `version`                      | `git.tag`                                                    |
+| `long_description`             | file: `README.[md|rst]`                                      |
+| `author` and `author_email`    | file: `.pkgit.json`                                          |
+| `url`                          | `git.origin.url`                                             |
+| `license`                      | file: `LICENSE`                                              |
+| `classifiers`                  | license and file `.travis.yml`                               |
+| `install_requires`             | files: `requirements.txt` or `pipfile` or `pyproject.toml`   |
+| `tests_require`                | file: `pipfile` or `pyproject.toml`                          |
+| `extras_require`               | files: `requirements.*.txt `or `pyproject.toml`              |
+| `entry_points.console_scripts` | all global functions from file `PACKAGE_ROOT\entry_points_console_scripts.py` |
 
 Current project is the first example.
 
