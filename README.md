@@ -23,7 +23,7 @@ Done!
 | `packages`                     | `find_packages()`                                            |
 | `name`                         | packages or `pyproject.toml`                                 |
 | `version`                      | `git.tag`                                                    |
-| `long_description`             | file: `README.[md|rst]`                                      |
+| `long_description`             | file: `README.rst` or `README.md`                            |
 | `author` and `author_email`    | file: `.pkgit.json` or `pyproject.toml`                      |
 | `url`                          | `git.origin.url`                                             |
 | `license`                      | file: `LICENSE`                                              |
