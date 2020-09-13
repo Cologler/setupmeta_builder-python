@@ -7,11 +7,11 @@
 
 from typing import *
 import subprocess
+from functools import lru_cache
 
 from ..bases import (
     BaseMetadataProvider, IContext
 )
-from ..utils import store_state
 
 def get_git_output(ctx: IContext, argv: list) -> Optional[str]:
     gitdir = str(ctx.root_path / '.git')
@@ -25,7 +25,7 @@ def get_git_output(ctx: IContext, argv: list) -> Optional[str]:
     if proc.returncode == 0:
         return proc.stdout.strip()
 
-@store_state(object())
+@lru_cache
 def get_origin_url(ctx: IContext):
     origin_url = None
     git_remote_stdout = get_git_output(ctx, ['remote'])
