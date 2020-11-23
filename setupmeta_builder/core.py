@@ -268,18 +268,23 @@ class SetupMetaBuilder:
         ctx.setup_attrs['entry_points'] = entry_points
 
     def _get_entry_points_console_scripts(self, ctx: SetupAttrContext):
-        name = ctx.setup_attrs.get('name')
-        console_scripts = []
-        if name:
+        console_scripts = {}
+
+        # from packages
+        for name in ctx.setup_attrs['packages']:
             csf = ctx.get_fileinfo(os.path.join(name, 'entry_points_console_scripts.py'))
             if csf.is_file():
                 for fn in get_global_funcnames(csf):
                     if not fn.startswith('_'):
                         script_name = fn.replace('_', '-')
-                        console_scripts.append(
-                            f'{script_name}={name}.entry_points_console_scripts:{fn}'
-                        )
-        return console_scripts
+                        console_scripts[script_name] = f'{name}.entry_points_console_scripts:{fn}'
+
+        # from poetry
+        poetry_scripts = get_field(ctx.get_pyproject_conf(), 'tool.poetry.scripts')
+        if poetry_scripts and isinstance(poetry_scripts, dict):
+            console_scripts.update(poetry_scripts)
+
+        return [f'{k}={v}' for k, v in console_scripts.items()]
 
     def auto_zip_safe(self, ctx: SetupAttrContext):
         ctx.setup_attrs['zip_safe'] = False
