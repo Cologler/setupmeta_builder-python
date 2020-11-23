@@ -7,24 +7,18 @@
 
 import os
 import sys
-import traceback
 
 from prettyprinter import pprint
 
 from .. import get_setup_attrs
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv
-    try:
-        cwd = (argv + [os.getcwd()])[1]
-        setup_attrs = get_setup_attrs(cwd)
-        long_description = setup_attrs['long_description']
-        if long_description and len(long_description) > 205:
-            setup_attrs['long_description'] = long_description[:200] + '...'
-        pprint(setup_attrs)
-    except Exception: # pylint: disable=W0703
-        traceback.print_exc()
+def print_setup_attrs(root_dir=None):
+    root_dir = root_dir or os.getcwd()
+    setup_attrs = get_setup_attrs(root_dir)
+    long_description = setup_attrs['long_description']
+    if long_description and len(long_description) > 205:
+        setup_attrs['long_description'] = long_description[:200] + '...'
+    pprint(setup_attrs)
 
 if __name__ == '__main__':
-    main()
+    print_setup_attrs((sys.argv + [None])[1])
