@@ -4,6 +4,8 @@
 [![Build Status](https://travis-ci.com/Cologler/setupmeta_builder-python.svg?branch=master)](https://travis-ci.com/Cologler/setupmeta_builder-python)
 [![PyPI](https://img.shields.io/pypi/v/setupmeta_builder.svg)](https://pypi.org/project/setupmeta_builder/)
 
+Try auto build `setup.py` attributes from git commit, CI config, etc.
+
 ## Usage
 
 Replace your `setup.py` file to:
@@ -36,5 +38,4 @@ Done!
 Current project is the first example.
 
 **You can always print attrs using `python setup.py print_attrs`**
-
 
