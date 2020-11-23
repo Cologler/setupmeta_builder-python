@@ -30,17 +30,11 @@ Done!
 | `classifiers`                  | license and file `.travis.yml`                               |
 | `install_requires`             | files: `requirements.txt` or `pipfile` or `pyproject.toml`   |
 | `tests_require`                | file: `pipfile` or `pyproject.toml`                          |
-| `extras_require`               | files: `requirements.*.txt `or `pyproject.toml`              |
-| `entry_points.console_scripts` | all global functions from file `PACKAGE_ROOT\entry_points_console_scripts.py` |
+| `extras_require`               | files: `requirements.*.txt` or `pyproject.toml`              |
+| `entry_points.console_scripts` | `PACKAGE_ROOT\entry_points_console_scripts.py` or `pyproject.toml`. |
 
 Current project is the first example.
 
 **You can always print attrs using `python setup.py print_attrs`**
 
-## Details
 
-### entry_points.console_scripts
-
-If your package include a file named `entry_points_console_scripts.py`, setupmeta_builder will exec it and get all item from globals.
-
-So do **NOT** import anything in top of `entry_points_console_scripts.py`.
