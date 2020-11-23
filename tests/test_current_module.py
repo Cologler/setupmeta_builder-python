@@ -30,7 +30,9 @@ def test_attrs_for_setupmeta_builder():
 
     assert setup_attrs == {
         'packages': [
-            'setupmeta_builder', 'setupmeta_builder.cli'
+            'setupmeta_builder',
+            'setupmeta_builder.cli',
+            'setupmeta_builder.metadata_providers'
         ],
         'long_description_content_type': 'text/markdown',
         'name': 'setupmeta_builder',

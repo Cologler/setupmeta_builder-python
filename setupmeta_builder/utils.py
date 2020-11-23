@@ -7,6 +7,7 @@
 
 import fsoopify
 import re
+import functools
 
 def parse_homepage_from_git_url(git_url: str):
     'parse homepage url from a git url (or None if unable to parse)'
@@ -47,3 +48,4 @@ def get_field(d: dict, path: str, default=None):
     for field in parts[:-1]:
         d = d.get(field, {})
     return d.get(parts[-1], default)
+    

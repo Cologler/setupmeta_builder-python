@@ -9,7 +9,10 @@ from typing import *
 import re
 
 from packaging.requirements import Requirement
-from poetry.semver import parse_constraint
+try:
+    from poetry.core.semver import parse_constraint
+except ModuleNotFoundError:
+    from poetry.semver import parse_constraint
 
 RE_AUTHORS = re.compile('^(?P<name>.+) <(?P<email>.+@.+)>$')
 
