@@ -5,18 +5,18 @@
 #
 # ----------
 
+import os
 import sys
 
 def get_setup_attrs(root_path=None, attrs=None) -> dict:
     '''
     get the auto generated attrs dict.
     '''
-    from .core import SetupAttrContext, SetupMetaBuilder
-    ctx = SetupAttrContext(root_path)
-    if attrs is not None:
-        ctx.setup_attrs.update(attrs)
-    SetupMetaBuilder().fill_ctx(ctx)
-    return ctx.setup_attrs
+    from .core import build_setupmeta
+
+    setupmeta = build_setupmeta(root_path or os.getcwd())
+    setup_attrs = setupmeta.to_setup_attrs()
+    return setup_attrs
 
 def setup_it(**attrs):
     '''

@@ -27,22 +27,23 @@ def test_attrs_for_setupmeta_builder():
     assert 'License :: OSI Approved :: MIT License' in classifiers
     assert 'Programming Language :: Python :: 3.7' in classifiers
     assert 'Programming Language :: Python :: 3.8' in classifiers
+    assert 'Programming Language :: Python :: 3.9' in classifiers
 
     assert setup_attrs == {
         'packages': [
             'setupmeta_builder',
             'setupmeta_builder.cli',
-            'setupmeta_builder.metadata_providers'
+            'setupmeta_builder.pickers',
+            'setupmeta_builder.provs',
+            'setupmeta_builder.sorters',
         ],
         'long_description_content_type': 'text/markdown',
         'name': 'setupmeta_builder',
         'author': 'Cologler',
         'author_email': 'skyoflw@gmail.com',
         'url': 'https://github.com/Cologler/setupmeta_builder-python',
-        'license': 'MIT License',
         'zip_safe': False,
         'include_package_data': True,
         'install_requires': install_requires,
-        'tests_require': ['pytest'],
-        'entry_points': {}
+        'tests_require': ['pytest']
     }

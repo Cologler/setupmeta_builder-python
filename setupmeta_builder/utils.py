@@ -5,9 +5,12 @@
 #
 # ----------
 
+from typing import *
 import fsoopify
 import re
 import functools
+
+from packaging.version import Version, parse
 
 def parse_homepage_from_git_url(git_url: str):
     'parse homepage url from a git url (or None if unable to parse)'
@@ -26,19 +29,6 @@ def parse_homepage_from_git_url(git_url: str):
         return f'https://{host}/{user}/{repo}'
     return None
 
-def get_global_funcnames(pyfile: fsoopify.FileInfo) -> list:
-    'get a list of global funcnames (use for entry_points.console_scripts).'
-    assert pyfile.is_file()
-
-    import ast
-
-    funcnames = []
-    mod = ast.parse(pyfile.read_text())
-    for stmt in mod.body:
-        if isinstance(stmt, ast.FunctionDef):
-            funcnames.append(stmt.name)
-    return funcnames
-
 def get_field(d: dict, path: str, default=None):
     '''
     example: get_field(pyproject, 'tool.poetry.version')
@@ -48,4 +38,18 @@ def get_field(d: dict, path: str, default=None):
     for field in parts[:-1]:
         d = d.get(field, {})
     return d.get(parts[-1], default)
-    
+
+def make_consts(cls: type):
+    type_hints = get_type_hints(cls)
+    for name, type_ in type_hints.items():
+        if not hasattr(cls, name) and type_ is str:
+            setattr(cls, name, name)
+    return cls
+
+def parse_version(version: str) -> Version:
+    v = parse(version)
+    if isinstance(v, Version):
+        return v
+
+def ensure_list(value: Union[List[str], str]) -> List[str]:
+    return [value] if isinstance(value, str) else list(value)

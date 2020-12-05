@@ -35,8 +35,6 @@ pgsql = ["psycopg2"]
         )
         setup_attrs = get_setup_attrs(tmpdir)
         assert setup_attrs == {
-            'classifiers': [],
-            'entry_points': {},
             'extras_require': {
                 'mysql': ['mysqlclient<2.0,>=1.3'],
                 'pgsql': ['psycopg2<3.0,>=2.7']
@@ -45,9 +43,7 @@ pgsql = ["psycopg2"]
             'install_requires': [
                 'mandatory<2.0,>=1.0'
             ],
-            'long_description': '',
             'name': 'awesome',
-            'packages': [],
             'zip_safe': False,
         }
 

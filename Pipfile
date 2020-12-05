@@ -14,6 +14,8 @@ packaging = "*"
 prettyprinter = "*"
 toml = "*"
 poetry = "*"
+toposort = "*"
+anyioc = "*"
 
 [requires]
 python_version = "3.7"

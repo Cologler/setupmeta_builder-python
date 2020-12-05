@@ -1,320 +1,150 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2019~2999 - Cologler <skyoflw@gmail.com>
+# Copyright (c) 2020~2999 - Cologler <skyoflw@gmail.com>
 # ----------
 # all attrs from spec:
 # https://packaging.python.org/guides/distributing-packages-using-setuptools/
 # ----------
 
+
+
 from typing import *
-import os
-import json
-import subprocess
-from pathlib import Path
-from collections import ChainMap
+from .abc import *
+from collections import defaultdict
+import logging
+import itertools
 
-import fsoopify
+from anyioc import ServiceProvider
+from anyioc.g import get_namespace_provider
+from toposort import toposort_flatten
+from fsoopify import FileInfo, DirectoryInfo
 
-from .consts import EXCLUDED_PACKAGES, SETUP_ATTRS
-from .bases import IContext
-from .licenses import LICENSES
-from .requires_resolver import DefaultRequiresResolver
-from .version_resolver import update_version
-from .utils import get_global_funcnames, get_field
-from .utils_poetry import parse_author
-from .metadata_providers import (
-    FileSystemMetadataProvider,
-    GitMetadataProvider,
-)
+from .utils import ensure_list
 
-class SetupAttrContext(IContext):
-    _pkgit_conf: dict = None
-    _pyproject_conf: dict = None
-
-    def __init__(self, root_path=None):
-        self._setup_attrs = {}
-        self._root_path = Path(root_path) if root_path else Path.cwd()
-        self._state = {}
+class _Project(IProject):
+    def __init__(self, root_dir: str) -> None:
+        super().__init__()
+        self._root_dir = DirectoryInfo(root_dir)
+        assert self._root_dir.is_directory(), f'{root_dir} is not a dir.'
+        self._text_cached = {}
 
     @property
-    def setup_attrs(self):
-        return self._setup_attrs
+    def root_dir(self):
+        'the root dir (abs)path of the project.'
+        return self._root_dir
+
+    def read_text(self, path: str, relative: bool=True, cached: bool=True) -> Optional[str]:
+        f = self._root_dir.get_fileinfo(path) if relative else FileInfo(path)
+        d = None
+        if f.is_file():
+            try:
+                d = f.read_text()
+            except FileNotFoundError:
+                pass
+        if cached:
+            self._text_cached[f.path] = d
+        return d
+
+
+class _Context(IMetadataResolveContext):
+    def __init__(self, project: IProject, logger: Logger) -> None:
+        super().__init__()
+        self._project = project
+        self._logger = logger
+        self._results: Dict[str, Metadata] = {}
 
     @property
-    def root_path(self):
-        return self._root_path
+    def project(self) -> IProject:
+        return self._project
 
     @property
-    def state(self):
-        '''
-        a dict for store cached state.
-        '''
-        return self._state
+    def logger(self) -> Logger:
+        return self._logger
 
-    def get_fileinfo(self, relpath: str) -> fsoopify.FileInfo:
-        '''get `FileInfo`.'''
-        return fsoopify.FileInfo(str(self._root_path / relpath))
+    def set_result(self, name: str, result: Metadata):
+        'set result with metadata name.'
+        self._results[name] = result
 
-    def get_text_content(self, relpath: str) -> Optional[str]:
-        fileinfo = self.get_fileinfo(relpath)
-        if fileinfo.is_file():
-            return fileinfo.read_text()
-
-    def get_pkgit_conf(self) -> dict:
-        if self._pkgit_conf is None:
-            global_conf_path = Path.home() / '.pkgit.json'
-            if global_conf_path.is_file():
-                global_conf = json.loads(global_conf_path.read_text('utf-8'))
-            else:
-                global_conf = {}
-
-            cwd_conf_text = self.get_text_content('.pkgit.json')
-            if cwd_conf_text:
-                cwd_conf = json.loads(cwd_conf_text)
-            else:
-                cwd_conf = {}
-
-            self._pkgit_conf = ChainMap(cwd_conf, global_conf)
-
-        return self._pkgit_conf
-
-    def get_pyproject_conf(self) -> dict:
-        if self._pyproject_conf is None:
-            fileinfo = self.get_fileinfo('pyproject.toml')
-            if fileinfo.is_file():
-                self._pyproject_conf = fileinfo.load()
-            else:
-                self._pyproject_conf = {}
-
-        return self._pyproject_conf
-
-    def _run_git(self, argv: list):
-        gitdir = str(self.root_path / '.git')
-        argv = ['git', f'--git-dir={gitdir}'] + argv
-        return subprocess.run(argv,
-            encoding='utf-8',
-            cwd=self.root_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-
-    def _get_git_output(self, argv: list) -> str:
-        '''
-        return None if returncode != 0
-        '''
-        cp = self._run_git(argv)
-        if cp.returncode == 0:
-            return cp.stdout.strip()
+    def get_results(self):
+        return self._results
 
 
-class SetupMetaBuilder:
+class SetupMeta:
+    def __init__(self, ioc: ServiceProvider) -> None:
+        super().__init__()
+        self._metadatas_table: Dict[str, List[Metadata]] = {}
+        self._ioc = ioc
 
-    def __init__(self):
-        self.requires_resolver = DefaultRequiresResolver()
-        from .classifiers import IClassifierUpdater
-        self.classifier_updaters = [
-            cls() for cls in IClassifierUpdater.All
-        ]
+    @property
+    def metadatas_table(self):
+        return self._metadatas_table
 
-    def fill_ctx(self, ctx: SetupAttrContext):
-        # resolve attr from setupmeta_builder auto detect
-        for attr in SETUP_ATTRS:
-            method = getattr(self, f'auto_{attr}', None)
-            if method is not None and attr not in ctx.setup_attrs:
-                method(ctx)
+    def to_setup_attrs(self) -> dict:
+        attrs = {}
+        for name, metadatas in self._metadatas_table.items():
+            picker: IAttrPicker = self._ioc.get(f'AttrPicker[{name}]') or self._ioc.get('AttrPicker')
+            picker.write(name, metadatas, attrs)
+        return attrs
 
-        # update attrs (like version etc)
-        for attr in SETUP_ATTRS:
-            method = getattr(self, f'update_{attr}', None)
-            if method is not None:
-                method(ctx)
+def _sort_providers(providers: List[IMetadataProvider]) -> List[IMetadataProvider]:
+    prov_map: DefaultDict[str, Set[int]] = defaultdict(set)
+    for i, provider in enumerate(providers):
+        for prov in ensure_list(provider.get_provided()):
+            prov_map[prov].add(i)
+    toposort_data: Dict[int, Set[int]] = {}
 
-        for attr in SETUP_ATTRS:
-            method = getattr(self, f'post_{attr}', None)
-            if method is not None:
-                method(ctx)
+    dep_all = set()
+    for i, provider in enumerate(providers):
+        if '*' in provider.get_dependencies():
+            dep_all.add(i)
+    not_all = set(range(len(providers))) - dep_all
 
-    def auto_packages(self, ctx: SetupAttrContext):
-        from setuptools import find_packages
+    for i, provider in enumerate(providers):
+        if i in dep_all:
+            toposort_data[i] = not_all.copy()
+        else:
+            toposort_data[i] = set(itertools.chain(*[prov_map[d] for d in ensure_list(provider.get_dependencies())]))
 
-        packages = find_packages(
-            where=str(ctx.root_path),
-            exclude=EXCLUDED_PACKAGES)
-        ctx.setup_attrs['packages'] = packages
+    sorted_indexes = toposort_flatten(toposort_data)
+    return [providers[i] for i in sorted_indexes]
 
-    def auto_py_modules(self, ctx: SetupAttrContext):
-        # description:
-        # https://packaging.python.org/guides/distributing-packages-using-setuptools/#py-modules
-        #   If your project contains any single-file Python modules that aren’t part of a package,
-        #   set py_modules to a list of the names of the modules (minus the .py extension)
-        #   in order to make setuptools aware of them.
+def build_setupmeta(root_dir: str):
+    ioc = get_namespace_provider('setupmeta_builder').scope()
+    sm = SetupMeta(ioc)
+    providers: List[IMetadataProvider] = ioc.get_many('MetadataProvider')
+    project = _Project(root_dir)
 
-        packages = ctx.setup_attrs['packages']
-        if packages:
-            return # only discover if no packages.
+    # sort providers:
+    sorted_providers = _sort_providers(providers)
 
-        proj_name = ctx.root_path.name
+    # call providers:
+    metadatas_table: Dict[str, List[Metadata]] = defaultdict(list)
 
-        py_modules = []
+    def get_sorter(name: str) -> ISorter:
+        return ioc.get(f'Sorter[{name}]') or ioc['Sorter']
 
-        search_names = []
-        search_names.append(proj_name)
-        search_names.append(proj_name.replace('-', '_'))
-        if proj_name.startswith('python-'):
-            search_names.append(proj_name[len('python-'):])
-        if proj_name.endswith('-python'):
-            search_names.append(proj_name[:-len('-python')])
-        for name in search_names:
-            if ctx.get_fileinfo(f'{name}.py').is_file():
-                py_modules.append(name)
-                break
+    for provider in sorted_providers:
+        provider_name = type(provider).__qualname__
+        ctx = _Context(project, logger=logging.getLogger(provider_name))
+        deps: Dict[str, List[Metadata]] = {}
+        for name in ensure_list(provider.get_dependencies()):
+            deps[name] = get_sorter(name).sort(name, metadatas_table[name]).copy()
+        try:
+            provider.run(ctx, deps)
+        except Exception as e:
+            ctx.logger.error(f'error raised when calling {provider_name}: {e}', exc_info=e)
+        else:
+            for name, metadata in ctx.get_results().items():
+                metadata.metadata_id = f'{provider_name}:{name}'
+                metadatas_table[name].append(metadata)
 
-        if py_modules:
-            ctx.setup_attrs['py_modules'] = py_modules
+    # combine results:
+    for name in metadatas_table:
+        sm.metadatas_table[name] = get_sorter(name).sort(name, metadatas_table[name])
 
-    def auto_long_description(self, ctx: SetupAttrContext):
-        providers = [
-            FileSystemMetadataProvider()
-        ]
+    return sm
 
-        for provider in providers:
-            long_description = provider.get_long_description(ctx)
-            if long_description:
-                ctx.setup_attrs['long_description'] = long_description.long_description
-                if long_description.long_description_content_type:
-                    ctx.setup_attrs['long_description_content_type'] = long_description.long_description_content_type
-                return
+if __name__ == '__main__':
+    from pprint import pprint
+    pprint(build_setupmeta('.').to_setup_attrs())
 
-        ctx.setup_attrs.setdefault('long_description', '')
-
-    def auto_name(self, ctx: SetupAttrContext):
-        pyproject = ctx.get_pyproject_conf()
-        tool = pyproject.get('tool', {})
-        name = get_field(tool, 'poetry.name') or \
-               get_field(tool, 'flit.metadata.module')
-
-        if not name:
-            def guess_name():
-                packages = ctx.setup_attrs.get('packages', [])
-                py_modules = ctx.setup_attrs.get('py_modules', [])
-                sources = packages + py_modules
-                if not sources:
-                    raise RuntimeError(f'unable to parse name: no packages or py_modules found.')
-
-                ns = set()
-                for src in sources:
-                    ns.add(src.partition('.')[0])
-                if len(ns) > 1:
-                    raise RuntimeError(f'unable to pick name from: {ns}')
-
-                return list(ns)[0]
-            name = guess_name()
-
-        if name:
-            ctx.setup_attrs['name'] = name
-
-    def auto_version(self, ctx: SetupAttrContext):
-        version = get_field(ctx.get_pyproject_conf(), 'tool.poetry.version')
-        if version:
-            ctx.setup_attrs.setdefault('version', version)
-
-    def update_version(self, ctx: SetupAttrContext):
-        update_version(ctx)
-
-    def auto_author(self, ctx: SetupAttrContext):
-        author_name = None
-        author_email = None
-
-        # parse from pyproject
-        authors = get_field(ctx.get_pyproject_conf(), 'tool.poetry.authors', [])
-        if authors:
-            author_name, author_email = parse_author(authors[0])
-
-        # parse from pkgit
-        if author_name is None:
-            author_name = ctx.get_pkgit_conf().get('author')
-
-        if author_name:
-            ctx.setup_attrs['author'] = author_name
-        if author_email:
-            ctx.setup_attrs.setdefault('author_email', author_email)
-
-    def auto_author_email(self, ctx: SetupAttrContext):
-        author_email = ctx.get_pkgit_conf().get('author_email')
-        if author_email:
-            ctx.setup_attrs['author_email'] = author_email
-
-    def auto_url(self, ctx: SetupAttrContext):
-        homepage = get_field(ctx.get_pyproject_conf(), 'tool.poetry.homepage')
-
-        if homepage is None:
-            homepage = GitMetadataProvider().get_homepage_url(ctx)
-
-        if homepage:
-            ctx.setup_attrs['url'] = homepage
-
-    def auto_license(self, ctx: SetupAttrContext):
-        from .licenses import update_license
-        update_license(ctx)
-
-    def auto_scripts(self, ctx: SetupAttrContext):
-        pass
-
-    def auto_entry_points(self, ctx: SetupAttrContext):
-        entry_points = {}
-        console_scripts = self._get_entry_points_console_scripts(ctx)
-        if console_scripts:
-            entry_points['console_scripts'] = console_scripts
-        ctx.setup_attrs['entry_points'] = entry_points
-
-    def _get_entry_points_console_scripts(self, ctx: SetupAttrContext):
-        console_scripts = {}
-
-        # from packages
-        for name in ctx.setup_attrs['packages']:
-            csf = ctx.get_fileinfo(os.path.join(name, 'entry_points_console_scripts.py'))
-            if csf.is_file():
-                for fn in get_global_funcnames(csf):
-                    if not fn.startswith('_'):
-                        script_name = fn.replace('_', '-')
-                        console_scripts[script_name] = f'{name}.entry_points_console_scripts:{fn}'
-
-        # from poetry
-        poetry_scripts = get_field(ctx.get_pyproject_conf(), 'tool.poetry.scripts')
-        if poetry_scripts and isinstance(poetry_scripts, dict):
-            console_scripts.update(poetry_scripts)
-
-        return [f'{k}={v}' for k, v in console_scripts.items()]
-
-    def auto_zip_safe(self, ctx: SetupAttrContext):
-        ctx.setup_attrs['zip_safe'] = False
-
-    def auto_include_package_data(self, ctx: SetupAttrContext):
-        ctx.setup_attrs['include_package_data'] = True
-
-    def auto_setup_requires(self, ctx: SetupAttrContext):
-        pass
-
-    def auto_install_requires(self, ctx: SetupAttrContext):
-        requires = self.requires_resolver.resolve_install_requires(ctx)
-        if requires is not None:
-            ctx.setup_attrs['install_requires'] = requires
-
-    def auto_tests_require(self, ctx: SetupAttrContext):
-        requires = self.requires_resolver.resolve_tests_require(ctx)
-        if requires is not None:
-            ctx.setup_attrs['tests_require'] = requires
-
-    def auto_extras_require(self, ctx: SetupAttrContext):
-        requires = self.requires_resolver.resolve_extras_require(ctx)
-        if requires is not None:
-            ctx.setup_attrs['extras_require'] = requires
-
-    def post_classifiers(self, ctx: SetupAttrContext):
-        # see: https://pypi.org/classifiers/
-        classifiers = ctx.setup_attrs.get('classifiers', [])
-
-        for updater in self.classifier_updaters:
-            updater.update_classifiers(ctx, classifiers)
-
-        ctx.setup_attrs['classifiers'] = list(sorted(set(classifiers)))
