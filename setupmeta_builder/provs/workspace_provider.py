@@ -29,7 +29,7 @@ class WorkspacePackagesProvider(IMetadataProvider):
         def found(name: str, packages: List[str], infer_from: str, package_dir = None):
             context.set_result(name, Metadata(
                 priority=Priorities.INFER,
-                value=packages,
+                value=sorted(packages),
                 infer_from=infer_from
             ))
             if package_dir:
